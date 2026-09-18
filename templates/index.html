@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brightspace Grader 2.0 | Motor Especialista de Avaliação</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans">
+
+    <!-- Navbar Superior -->
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                <i class="fa-solid fa-graduation-cap text-xl text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                    Brightspace Grader <span class="text-xs bg-brand-600/30 text-brand-400 border border-brand-500/40 px-2 py-0.5 rounded-full font-semibold">v2.0 Especialista</span>
+                </h1>
+                <p class="text-xs text-slate-400">Motor Pedagógico Elevado, Auditoria e Anti-Plágio</p>
+            </div>
+        </div>
+
+        <!-- Abas de Navegação -->
+        <nav class="flex space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button id="tab-btn-operacoes" onclick="trocarAba('operacoes')" class="px-4 py-2 text-sm font-medium rounded-lg transition-all bg-brand-600 text-white shadow-sm flex items-center gap-2">
+                <i class="fa-solid fa-sliders"></i> Painel Geral (Todos os Motores)
+            </button>
+            <button id="tab-btn-discursivas" onclick="trocarAba('discursivas')" class="px-4 py-2 text-sm font-medium rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-2">
+                <i class="fa-solid fa-feather-pointed text-amber-400"></i> Provas Discursivas
+                <span class="text-[10px] font-bold bg-gradient-to-r from-amber-500 to-brand-500 text-white px-2 py-0.5 rounded-full shadow-sm shadow-amber-500/30 uppercase tracking-wider">[Novo Motor de Correção]</span>
+            </button>
+            <button id="tab-btn-relatorios" onclick="trocarAba('relatorios')" class="px-4 py-2 text-sm font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 flex items-center gap-2">
+                <i class="fa-solid fa-chart-pie"></i> Explorador de Relatórios
+            </button>
+        </nav>
+
+        <!-- Status do Motor -->
+        <div class="flex items-center gap-3">
+            <span id="motor-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-400 border border-emerald-800">
+                <span id="motor-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span id="motor-status-txt">Sistema Pronto</span>
+            </span>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-1 overflow-y-auto custom-scroll p-6 bg-slate-950">
+        
+        <!-- ======================================================== -->
+        <!-- ABA 1: PAINEL DE OPERAÇÕES -->
+        <!-- ======================================================== -->
+        <div id="view-operacoes" class="space-y-6 max-w-7xl mx-auto">
+            
+            <!-- Linha Superior: Configuração e Turmas -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Card 1: Credenciais e Conexão -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                    <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-key text-brand-500"></i> Autenticação AVA
+                    </h2>
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Matrícula / Usuário</label>
+                            <input id="inp-username" type="text" placeholder="Digite sua matrícula..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Senha do Portal</label>
+                            <input id="inp-password" type="password" placeholder="Digite sua senha..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div class="flex items-center justify-between pt-1">
+                            <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                                <input id="chk-headless" type="checkbox" checked class="rounded bg-slate-950 border-slate-800 text-brand-600 focus:ring-brand-500">
+                                <span>Modo Oculto (Headless)</span>
+                            </label>
+                            <button onclick="carregarCursos()" id="btn-descobrir" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-arrows-rotate"></i> Mapear Turmas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Seleção Curricular -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3 flex flex-col">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-book-bookmark text-brand-500"></i> Turmas Encontradas
+                        </h2>
+                        <select id="sel-aba-turmas" onchange="atualizarListaTurmas()" class="bg-slate-950 border border-slate-800 text-xs text-slate-300 rounded px-2 py-1 focus:outline-none focus:border-brand-500">
+                            <option value="Fixado">Fixado</option>
+                            <option value="Todas as Disciplinas">Todas as Disciplinas</option>
+                        </select>
+                    </div>
+
+                    <div id="lista-turmas-container" class="flex-1 overflow-y-auto max-h-48 border border-slate-800/80 rounded-lg p-2 bg-slate-950 custom-scroll space-y-1 text-xs">
+                        <p class="text-slate-500 text-center py-4">Clique em "Mapear Turmas" para listar as salas.</p>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-1 text-xs text-slate-400">
+                        <span id="txt-turmas-selecionadas">0 turma(s) selecionada(s)</span>
+                        <div class="flex gap-2">
+                            <button onclick="selecionarTodasTurmas(true)" class="hover:text-slate-200">Todas</button>
+                            <span>|</span>
+                            <button onclick="selecionarTodasTurmas(false)" class="hover:text-slate-200">Limpar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Parâmetros de Avaliação -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                    <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-bullseye text-brand-500"></i> Escopo & Modo
+                    </h2>
+                    
+                    <!-- Atividades -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-medium text-slate-400">Atividades a Avaliar:</label>
+                        <div class="grid grid-cols-1 gap-1.5 text-xs">
+                            <label class="flex items-center gap-2 p-2 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                                <input id="chk-ativ-forum" type="checkbox" checked class="rounded text-brand-600 focus:ring-brand-500">
+                                <span class="font-medium text-slate-200 flex items-center gap-1.5">
+                                    <i class="fa-regular fa-comments text-brand-400"></i> Fórum de Discussão
+                                </span>
+                                <span class="ml-auto text-[10px] text-slate-500 font-mono">1.0 ou 2.5 pts</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                                <input id="chk-ativ-aberta" type="checkbox" checked class="rounded text-brand-600 focus:ring-brand-500">
+                                <span class="font-medium text-slate-200 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-file-arrow-up text-brand-400"></i> Atividade Aberta
+                                </span>
+                                <span class="ml-auto text-[10px] text-slate-500 font-mono">1.5 pts</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-amber-950/20 rounded-xl border-2 border-amber-500/60 cursor-pointer hover:border-amber-400 transition shadow-sm shadow-amber-500/10">
+                                <input id="chk-ativ-prova" type="checkbox" checked class="rounded text-amber-500 focus:ring-amber-400">
+                                <span class="font-bold text-white flex items-center gap-1.5">
+                                    <i class="fa-solid fa-feather-pointed text-amber-400"></i> Prova Presencial (Discursiva)
+                                </span>
+                                <span class="ml-auto flex items-center gap-2">
+                                    <span class="text-[10px] font-extrabold bg-amber-500 text-slate-950 px-2 py-0.5 rounded uppercase tracking-wider animate-pulse">[NOVO MOTOR DE CORREÇÃO]</span>
+                                    <span class="text-[10px] text-slate-400 font-mono">Até 2.0 pts</span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Modo de Execução -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Modo Operacional:</label>
+                        <select id="sel-modo" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                            <option value="tradicional">1. Execução Normal (Novos envios + Auditoria comum)</option>
+                            <option value="recorrigir">2. Recorrigir + Auditoria Geral (Avaliar e auditar 100% da turma)</option>
+                            <option value="auditoria">3. Auditoria (Verificar já corrigidos, {FirstName}, notas)</option>
+                            <option value="auditoria_geral">4. Auditoria Geral (Auditar 100% dos estudantes)</option>
+                        </select>
+                    </div>
+
+                    <!-- Botões de Ação -->
+                    <div class="grid grid-cols-2 gap-2 pt-2">
+                        <button id="btn-inspecionar" onclick="inspecionarTurma()" class="w-full px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                            <i class="fa-solid fa-microscope text-brand-400"></i> Inspecionar
+                        </button>
+                        <button id="btn-iniciar" onclick="iniciarExecucao()" class="w-full px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition shadow-lg shadow-brand-600/30">
+                            <i class="fa-solid fa-play"></i> Iniciar
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Painel de Pré-Inspeção (Plano de Apoio da Disciplina) -->
+            <div id="painel-apoio" class="hidden bg-slate-900 border border-indigo-950 rounded-2xl p-5 shadow-lg space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-check text-brand-400"></i> Plano de Apoio da Disciplina Inspecionada: <span id="apoio-nome-disc" class="text-brand-300"></span>
+                    </h3>
+                    <span id="apoio-regra-badge" class="px-2.5 py-1 text-xs rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800 font-semibold"></span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <!-- Fórum -->
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+                        <div class="flex justify-between items-center text-slate-300 font-semibold">
+                            <span><i class="fa-regular fa-comments text-brand-400"></i> Fórum Avaliativo</span>
+                            <span id="apoio-forum-pts" class="text-emerald-400"></span>
+                        </div>
+                        <div class="text-[11px] text-slate-400 space-y-1">
+                            <div><strong class="text-slate-300">Pendentes:</strong> <span id="apoio-forum-pend"></span> | <strong class="text-slate-300">Total:</strong> <span id="apoio-forum-tot"></span></div>
+                            <div class="mt-2 bg-slate-900 p-2 rounded max-h-24 overflow-y-auto custom-scroll text-slate-400 italic" id="apoio-forum-cmd"></div>
+                        </div>
+                    </div>
+
+                    <!-- Atividade Aberta -->
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+                        <div class="flex justify-between items-center text-slate-300 font-semibold">
+                            <span><i class="fa-solid fa-file-arrow-up text-brand-400"></i> Atividade Aberta</span>
+                            <span id="apoio-ativ-pts" class="text-emerald-400"></span>
+                        </div>
+                        <div class="text-[11px] text-slate-400 space-y-1">
+                            <div><strong class="text-slate-300">Pendentes:</strong> <span id="apoio-ativ-pend"></span> | <strong class="text-slate-300">Total:</strong> <span id="apoio-ativ-tot"></span></div>
+                            <div class="mt-2 bg-slate-900 p-2 rounded max-h-24 overflow-y-auto custom-scroll text-slate-400" id="apoio-ativ-inst"></div>
+                        </div>
+                    </div>
+
+                    <!-- Prova Presencial -->
+                    <div class="bg-slate-950 border border-amber-500/30 rounded-xl p-3 space-y-2">
+                        <div class="flex justify-between items-center text-slate-300 font-semibold">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-feather-pointed text-amber-400"></i> Prova Presencial</span>
+                            <span class="text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/50 px-2 py-0.5 rounded-full uppercase tracking-wider">[NOVO MOTOR DE CORREÇÃO]</span>
+                        </div>
+                        <div class="text-[11px] text-slate-400 space-y-1">
+                            <div><strong class="text-slate-300">Questão Discursiva:</strong> Avaliação em 4 passos analíticos com Duplo Rascunho.</div>
+                            <div class="mt-2 bg-slate-900 p-2 rounded max-h-24 overflow-y-auto custom-scroll text-slate-400 italic" id="apoio-prova-enun"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cards de Progresso e Métricas -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center">
+                    <span class="text-xs text-slate-400 font-medium">Progresso</span>
+                    <span id="met-progress" class="text-2xl font-bold text-brand-400 mt-1">0%</span>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center">
+                    <span class="text-xs text-slate-400 font-medium">Avaliados</span>
+                    <span id="met-avaliados" class="text-2xl font-bold text-emerald-400 mt-1">0</span>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center">
+                    <span class="text-xs text-slate-400 font-medium">Auditados</span>
+                    <span id="met-auditados" class="text-2xl font-bold text-cyan-400 mt-1">0</span>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center">
+                    <span class="text-xs text-slate-400 font-medium">Ajustados</span>
+                    <span id="met-ajustados" class="text-2xl font-bold text-amber-400 mt-1">0</span>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center col-span-2 md:col-span-1">
+                    <span class="text-xs text-slate-400 font-medium">Plágios Detectados</span>
+                    <span id="met-plagios" class="text-2xl font-bold text-rose-500 mt-1">0</span>
+                </div>
+            </div>
+
+            <!-- Barra de Progresso e Status Atual -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+                <div class="flex justify-between text-xs font-semibold">
+                    <span id="txt-status-estagio" class="text-slate-300">Aguardando início...</span>
+                    <span id="txt-status-aluno" class="text-brand-400"></span>
+                </div>
+                <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800">
+                    <div id="bar-progresso" class="bg-gradient-to-r from-brand-600 to-cyan-500 h-full w-0 transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <!-- Console de Logs em Tempo Real -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-terminal text-brand-500"></i> Terminal de Execução
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <button id="btn-parar" onclick="pararExecucao()" disabled class="px-3 py-1 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 rounded text-xs font-semibold transition disabled:opacity-40">
+                            <i class="fa-solid fa-hand"></i> Parar Execução
+                        </button>
+                    </div>
+                </div>
+
+                <div id="terminal-logs" class="bg-slate-950 border border-slate-800/80 rounded-xl p-4 font-mono text-xs text-slate-300 h-64 overflow-y-auto custom-scroll space-y-1">
+                    <p class="text-slate-500">[Sistema] Brightspace Grader 2.0 pronto para execução.</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- ABA 2: MÓDULO ESPECIALISTA DE PROVAS DISCURSIVAS -->
+        <!-- ======================================================== -->
+        <div id="view-discursivas" class="hidden space-y-6 max-w-7xl mx-auto">
+            
+            <!-- Linha 1: Seleção e Apontamento da Turma -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-feather-pointed text-amber-400"></i> Provas Discursivas
+                            <span class="text-xs font-extrabold bg-amber-500 text-slate-950 px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-md shadow-amber-500/30">[NOVO MOTOR DE CORREÇÃO]</span>
+                        </h2>
+                        <p class="text-xs text-slate-400">
+                            Ciclo pedagógico completo em 4 passos: <strong class="text-brand-300">1. Ver Enunciado</strong> &rarr; <strong class="text-brand-300">2. Criar Critérios</strong> &rarr; <strong class="text-brand-300">3. Ver Exemplo</strong> &rarr; <strong class="text-brand-300">4. Avaliar &amp; Auditar</strong>.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 text-xs rounded-full bg-amber-950/60 text-amber-400 border border-amber-800/60 font-semibold flex items-center gap-1.5">
+                            <i class="fa-solid fa-shield-halved"></i> Duplo Rascunho Ativo (Nunca Publica)
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Formulário de Apontamento da Turma -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Selecionar Turma Mapeada:</label>
+                        <select id="disc-sel-turma" onchange="selecionarTurmaDiscursiva(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+                            <option value="">-- Escolha uma turma mapeada --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Código OU da Turma:</label>
+                        <input id="disc-inp-ou" type="text" placeholder="Ex: 155399" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Nome da Disciplina:</label>
+                        <input id="disc-inp-nome" type="text" placeholder="Ex: SISTEMAS DE INFORMAÇÕES..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Modo de Avaliação:</label>
+                        <select id="disc-sel-modo" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+                            <option value="tradicional">1. Execução Normal (Novos Envios)</option>
+                            <option value="recorrigir">2. Recorrigir + Auditoria 100% da Turma</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação do Fluxo -->
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <div class="flex items-center gap-3">
+                        <button id="btn-disc-inspecionar" onclick="inspecionarDiscursivas()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow">
+                            <i class="fa-solid fa-microscope text-brand-400"></i> 1. Inspecionar Questão Discursiva
+                        </button>
+                        <button id="btn-disc-iniciar" onclick="iniciarDiscursivas()" class="px-5 py-2 bg-gradient-to-r from-amber-600 to-brand-600 hover:from-amber-500 hover:to-brand-500 text-white rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow-lg shadow-amber-600/20">
+                            <i class="fa-solid fa-play"></i> 4. Iniciar Correção da Turma
+                        </button>
+                        <button id="btn-disc-parar" onclick="pararExecucao()" disabled class="px-4 py-2 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 rounded-lg text-xs font-semibold transition disabled:opacity-40 flex items-center gap-1.5">
+                            <i class="fa-solid fa-hand"></i> Parar
+                        </button>
+                    </div>
+
+                    <button onclick="abrirAuditoriaDiscursivas()" class="px-3.5 py-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-clipboard-check text-cyan-400"></i> Ver Última Auditoria de Coerência
+                    </button>
+                </div>
+            </div>
+
+            <!-- Passo 1: Ver Enunciado Oficial & Código da Questão -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-brand-600/30 text-brand-400 flex items-center justify-center text-xs font-bold">1</span>
+                        Passo 1: Enunciado Oficial &amp; Código Mapeado
+                    </h3>
+                    <div class="flex items-center gap-3 text-xs">
+                        <span class="text-slate-400">Código da Questão: <strong id="disc-disp-codigo" class="font-mono text-brand-300">Não mapeado</strong></span>
+                        <span class="text-slate-400">Valor Máximo: <strong id="disc-disp-valor" class="text-emerald-400 font-bold">2.00 pts</strong></span>
+                    </div>
+                </div>
+
+                <div id="disc-enunciado-box" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs text-slate-300 whitespace-pre-line leading-relaxed max-h-48 overflow-y-auto custom-scroll italic">
+                    Nenhum enunciado inspecionado ainda. Aponte a turma acima e clique em "1. Inspecionar Questão Discursiva".
+                </div>
+
+                <div id="disc-padrao-box" class="hidden bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-400 space-y-1">
+                    <strong class="text-slate-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-book-open text-amber-400"></i> Padrão de Resposta Oficial da Disciplina:
+                    </strong>
+                    <div id="disc-disp-padrao-oficial" class="text-[11px] italic text-slate-300"></div>
+                </div>
+            </div>
+
+            <!-- Passo 2 & Passo 3: Critérios Analíticos e Gabarito de Referência -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- Passo 2: Matriz Pedagógica de Critérios -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-brand-600/30 text-brand-400 flex items-center justify-center text-xs font-bold">2</span>
+                            Passo 2: Critérios de Avaliação Analíticos
+                        </h3>
+                        <span class="text-[10px] bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded-full font-semibold">
+                            Total: 2.00 pts
+                        </span>
+                    </div>
+
+                    <!-- Aviso de Feedback Qualitativo Sem Números -->
+                    <div class="p-2.5 bg-brand-950/40 border border-brand-800/40 rounded-xl text-[11px] text-brand-300 flex items-start gap-2">
+                        <i class="fa-solid fa-circle-info mt-0.5 text-brand-400"></i>
+                        <div>
+                            <strong>Política de Feedback Pedagógico:</strong> Justificativas explicam exatamente o motivo qualitativo do desconto, sem exibir números ou subtrações explícitas (ex: sem <em>(-0.70 pts)</em>).
+                        </div>
+                    </div>
+
+                    <!-- Lista de Critérios Dinâmicos -->
+                    <div id="disc-criterios-container" class="space-y-2 text-xs">
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1">
+                            <div class="flex justify-between font-semibold text-slate-200">
+                                <span>1. Domínio Conceitual e Teórico</span>
+                                <span class="text-emerald-400">0.70 pts</span>
+                            </div>
+                            <p class="text-slate-400 text-[11px]">Compreensão aprofundada dos conceitos solicitados no enunciado e resposta direta à questão teórica central.</p>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1">
+                            <div class="flex justify-between font-semibold text-slate-200">
+                                <span>2. Aplicação Prática e Exemplos</span>
+                                <span class="text-emerald-400">0.80 pts</span>
+                            </div>
+                            <p class="text-slate-400 text-[11px]">Apresentação de aplicações práticas e pelo menos 2 exemplos concretos estudados na disciplina.</p>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1">
+                            <div class="flex justify-between font-semibold text-slate-200">
+                                <span>3. Clareza, Coesão e Norma Culta</span>
+                                <span class="text-emerald-400">0.50 pts</span>
+                            </div>
+                            <p class="text-slate-400 text-[11px]">Estrutura lógica, redação em conformidade com a norma padrão e autoria com as próprias palavras.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Passo 3: Padrão de Resposta Esperado -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-brand-600/30 text-brand-400 flex items-center justify-center text-xs font-bold">3</span>
+                            Passo 3: Exemplo de Resposta (Gabarito de Referência)
+                        </h3>
+                        <span class="text-[10px] bg-slate-950 text-slate-400 border border-slate-800 px-2 py-0.5 rounded-full font-semibold">
+                            Calibração Docente
+                        </span>
+                    </div>
+
+                    <div id="disc-exemplo-box" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs text-slate-300 whitespace-pre-line leading-relaxed h-[272px] overflow-y-auto custom-scroll">
+PADRÃO DE RESPOSTA ESPERADO (GABARITO COMENTADO):
+
+1. Contextualização e Fundamentação Conceitual:
+O estudante deve iniciar conceituando com precisão os tópicos teóricos centrais abordados no enunciado, demonstrando domínio do vocabulário técnico da disciplina e explicando o papel desses elementos no funcionamento organizacional.
+
+2. Articulação Prática e Exemplificação:
+Em atendimento ao comando da questão, a resposta deve apresentar com clareza aplicações práticas ou exemplos reais (ao menos dois exemplos bem estruturados), detalhando como esses sistemas, métodos ou práticas são empregados na rotina, na gestão operacional ou nas tomadas de decisão estratégica.
+
+3. Clareza e Autoria:
+O texto deve ser redigido com as próprias palavras do estudante, articulando raciocínio coeso, fluidez argumentativa e conformidade com a norma culta da língua portuguesa, sem cópia literal de fontes externas ou enunciados.
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Passo 4: A Parte de Avaliar (Métricas & Console) -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-brand-600/30 text-brand-400 flex items-center justify-center text-xs font-bold">4</span>
+                        Passo 4: Avaliação da Turma em Tempo Real
+                    </h3>
+                    <span id="disc-status-badge" class="px-2.5 py-1 text-xs rounded-full bg-slate-950 text-slate-400 border border-slate-800 font-semibold">
+                        Aguardando início
+                    </span>
+                </div>
+
+                <!-- Barra de Progresso e Aluno Atual -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-xs font-semibold">
+                        <span id="disc-txt-stage" class="text-slate-300">Pronto para iniciar correções discursivas.</span>
+                        <span id="disc-txt-aluno" class="text-amber-400 font-bold"></span>
+                    </div>
+                    <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800">
+                        <div id="disc-bar-progresso" class="bg-gradient-to-r from-amber-500 to-brand-500 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Mini Métricas -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-[11px] text-slate-400">Progresso</span>
+                        <div id="disc-met-prog" class="text-xl font-bold text-amber-400 mt-0.5">0%</div>
+                    </div>
+                    <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-[11px] text-slate-400">Avaliados</span>
+                        <div id="disc-met-aval" class="text-xl font-bold text-emerald-400 mt-0.5">0</div>
+                    </div>
+                    <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-[11px] text-slate-400">Plágios (≥90%)</span>
+                        <div id="disc-met-plag" class="text-xl font-bold text-rose-400 mt-0.5">0</div>
+                    </div>
+                    <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-[11px] text-slate-400">Salvamentos</span>
+                        <div class="text-xs font-semibold text-cyan-400 mt-1">2x Rascunho / Aluno</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Auditoria de Coerência -->
+            <div id="modal-auditoria-discursivas" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-clipboard-check text-cyan-400"></i> Auditoria de Coerência Final da Turma: <span id="audit-disc-nome" class="text-brand-300"></span>
+                            </h3>
+                            <p class="text-xs text-slate-400" id="audit-disc-info"></p>
+                        </div>
+                        <button onclick="fecharModalAuditoriaDiscursivas()" class="text-slate-400 hover:text-white text-lg">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Métricas da Auditoria -->
+                    <div class="p-4 bg-slate-950 border-b border-slate-800 grid grid-cols-3 gap-3 text-center text-xs">
+                        <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">TOTAL AVALIADOS</div>
+                            <div id="audit-disc-tot" class="text-lg font-bold text-white">0</div>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">MÉDIA DA TURMA</div>
+                            <div id="audit-disc-med" class="text-lg font-bold text-emerald-400">0.00 / 2.00</div>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">INCOERÊNCIAS</div>
+                            <div id="audit-disc-inc" class="text-lg font-bold text-emerald-400">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Alunos Auditados -->
+                    <div class="flex-1 overflow-y-auto custom-scroll p-4 space-y-2 text-xs" id="audit-disc-lista">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- ABA 3: EXPLORADOR HISTÓRICO DE RELATÓRIOS (ITEM 11) -->
+        <!-- ======================================================== -->
+        <div id="view-relatorios" class="hidden space-y-6 max-w-7xl mx-auto">
+            
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-folder-open text-brand-500"></i> Histórico de Sessões e Avaliações
+                        </h2>
+                        <p class="text-xs text-slate-400">Explore e filtre todos os relatórios consolidados gerados em sessões anteriores.</p>
+                    </div>
+                    <button onclick="carregarHistoricoRelatorios()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 self-start md:self-auto transition">
+                        <i class="fa-solid fa-arrows-rotate"></i> Atualizar Lista
+                    </button>
+                </div>
+
+                <!-- Tabela de Sessões -->
+                <div class="overflow-x-auto border border-slate-800 rounded-xl">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                            <tr>
+                                <th class="px-4 py-3">ID / Data</th>
+                                <th class="px-4 py-3">Modo</th>
+                                <th class="px-4 py-3">Docente</th>
+                                <th class="px-4 py-3">Alunos Avaliados</th>
+                                <th class="px-4 py-3">Plágios</th>
+                                <th class="px-4 py-3 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-relatorios" class="divide-y divide-slate-800">
+                            <tr>
+                                <td colspan="6" class="px-4 py-6 text-center text-slate-500">Carregando relatórios...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Modal de Detalhes do Relatório -->
+            <div id="modal-detalhes-relatorio" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-file-invoice text-brand-400"></i> Detalhes da Sessão: <span id="modal-sessao-id" class="text-brand-300"></span>
+                            </h3>
+                            <p class="text-xs text-slate-400" id="modal-sessao-info"></p>
+                        </div>
+                        <button onclick="fecharModalDetalhes()" class="text-slate-400 hover:text-white text-lg">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Filtro interno no modal -->
+                    <div class="p-4 bg-slate-950 border-b border-slate-800 flex flex-wrap gap-3">
+                        <input id="modal-filtro-busca" oninput="filtrarItensModal()" type="text" placeholder="Filtrar por aluno, disciplina ou atividade..." class="flex-1 min-w-[200px] bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                    </div>
+
+                    <!-- Lista de Itens do Relatório -->
+                    <div class="flex-1 overflow-y-auto custom-scroll p-6 space-y-3">
+                        <div id="modal-itens-container" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- JavaScript da Dashboard -->
+    <script>
+        let catalogoTurmas = {};
+        let turmasSelecionadas = [];
+        let relatorioAtualCache = null;
+
+        function trocarAba(aba) {
+            const btnOp = document.getElementById('tab-btn-operacoes');
+            const btnDisc = document.getElementById('tab-btn-discursivas');
+            const btnRel = document.getElementById('tab-btn-relatorios');
+            const viewOp = document.getElementById('view-operacoes');
+            const viewDisc = document.getElementById('view-discursivas');
+            const viewRel = document.getElementById('view-relatorios');
+
+            const activeClass = "px-4 py-2 text-sm font-medium rounded-lg transition-all bg-brand-600 text-white shadow-sm flex items-center gap-2";
+            const inactiveClass = "px-4 py-2 text-sm font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 flex items-center gap-2";
+
+            btnOp.className = inactiveClass;
+            btnDisc.className = inactiveClass;
+            btnRel.className = inactiveClass;
+            viewOp.classList.add('hidden');
+            viewDisc.classList.add('hidden');
+            viewRel.classList.add('hidden');
+
+            if (aba === 'operacoes') {
+                btnOp.className = activeClass;
+                viewOp.classList.remove('hidden');
+            } else if (aba === 'discursivas') {
+                btnDisc.className = activeClass;
+                viewDisc.classList.remove('hidden');
+                atualizarSeletorTurmasDiscursiva();
+            } else if (aba === 'relatorios') {
+                btnRel.className = activeClass;
+                viewRel.classList.remove('hidden');
+                carregarHistoricoRelatorios();
+            }
+        }
+
+        function atualizarSeletorTurmasDiscursiva() {
+            const sel = document.getElementById('disc-sel-turma');
+            if (!sel) return;
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">-- Escolha uma turma mapeada --</option>';
+            
+            const todasTurmas = [];
+            Object.values(catalogoTurmas).forEach(lista => {
+                lista.forEach(c => {
+                    if (!todasTurmas.some(t => t.ou === c.ou)) {
+                        todasTurmas.push(c);
+                    }
+                });
+            });
+
+            todasTurmas.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.ou;
+                opt.textContent = `[${c.ou}] ${c.name}`;
+                opt.dataset.name = c.name;
+                sel.appendChild(opt);
+            });
+
+            if (turmasSelecionadas.length > 0) {
+                const prim = turmasSelecionadas[0];
+                sel.value = prim.ou;
+                document.getElementById('disc-inp-ou').value = prim.ou;
+                document.getElementById('disc-inp-nome').value = prim.name;
+            } else if (currentVal) {
+                sel.value = currentVal;
+            }
+        }
+
+        function selecionarTurmaDiscursiva(ou) {
+            if (!ou) return;
+            const sel = document.getElementById('disc-sel-turma');
+            const opt = sel.options[sel.selectedIndex];
+            const nome = opt ? (opt.dataset.name || opt.textContent.replace(/^\[\d+\]\s*/, '')) : '';
+            document.getElementById('disc-inp-ou').value = ou;
+            document.getElementById('disc-inp-nome').value = nome;
+        }
+
+        async function inspecionarDiscursivas() {
+            const username = document.getElementById('inp-username').value.trim();
+            const password = document.getElementById('inp-password').value.trim();
+            const ou = document.getElementById('disc-inp-ou').value.trim();
+            const nome = document.getElementById('disc-inp-nome').value.trim();
+            const headless = document.getElementById('chk-headless').checked;
+
+            if (!username || !password) {
+                alert("Por favor, preencha sua Matrícula e Senha no Painel de Operações primeiro.");
+                trocarAba('operacoes');
+                document.getElementById('inp-username').focus();
+                return;
+            }
+
+            if (!ou) {
+                alert("Por favor, selecione ou informe o código OU da turma.");
+                document.getElementById('disc-inp-ou').focus();
+                return;
+            }
+
+            const btn = document.getElementById('btn-disc-inspecionar');
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Inspecionando Prova...`;
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/discursivas/inspecionar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, ou, nome, headless })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Erro na inspeção.");
+
+                const info = data.info || {};
+                const criterios = data.criterios || [];
+                const exemplo = data.exemplo || "";
+
+                // 1. Atualizar Passo 1
+                document.getElementById('disc-disp-codigo').textContent = info.codigo_questao || "EAD_DISCURSIVA";
+                document.getElementById('disc-disp-valor').textContent = (info.valor_maximo ? info.valor_maximo.toFixed(2) : "2.00") + " pts";
+                document.getElementById('disc-enunciado-box').textContent = info.enunciado || "Enunciado não localizado.";
+
+                if (info.padrao_resposta_oficial) {
+                    document.getElementById('disc-padrao-box').classList.remove('hidden');
+                    document.getElementById('disc-disp-padrao-oficial').textContent = info.padrao_resposta_oficial;
+                } else {
+                    document.getElementById('disc-padrao-box').classList.add('hidden');
+                }
+
+                // 2. Atualizar Passo 2 (Critérios)
+                const critContainer = document.getElementById('disc-criterios-container');
+                if (criterios.length > 0) {
+                    critContainer.innerHTML = criterios.map(c => `
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1">
+                            <div class="flex justify-between font-semibold text-slate-200">
+                                <span>${c.nome}</span>
+                                <span class="text-emerald-400">${c.peso.toFixed(2)} pts</span>
+                            </div>
+                            <p class="text-slate-400 text-[11px]">${c.descricao}</p>
+                        </div>
+                    `).join('');
+                }
+
+                // 3. Atualizar Passo 3 (Exemplo de Resposta)
+                if (exemplo) {
+                    document.getElementById('disc-exemplo-box').textContent = exemplo;
+                }
+
+            } catch (err) {
+                alert("Falha na inspeção da questão discursiva: " + err.message);
+            } finally {
+                btn.innerHTML = `<i class="fa-solid fa-microscope text-brand-400"></i> 1. Inspecionar Questão Discursiva`;
+                btn.disabled = false;
+            }
+        }
+
+        async function iniciarDiscursivas() {
+            const username = document.getElementById('inp-username').value.trim();
+            const password = document.getElementById('inp-password').value.trim();
+            const ou = document.getElementById('disc-inp-ou').value.trim();
+            const nome = document.getElementById('disc-inp-nome').value.trim();
+            const modo = document.getElementById('disc-sel-modo').value;
+            const headless = document.getElementById('chk-headless').checked;
+
+            if (!username || !password) {
+                alert("Por favor, preencha sua Matrícula e Senha.");
+                trocarAba('operacoes');
+                return;
+            }
+            if (!ou) {
+                alert("Informe ou selecione a turma (OU) a ser corrigida.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-disc-iniciar');
+            const btnParar = document.getElementById('btn-disc-parar');
+            btn.disabled = true;
+            btnParar.disabled = false;
+
+            try {
+                const res = await fetch('/api/discursivas/iniciar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username,
+                        password,
+                        ou,
+                        nome,
+                        modo,
+                        docente: "Prof. Avaliador",
+                        headless
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Erro ao iniciar.");
+            } catch (err) {
+                alert("Falha ao iniciar avaliação discursiva: " + err.message);
+                btn.disabled = false;
+                btnParar.disabled = true;
+            }
+        }
+
+        async function abrirAuditoriaDiscursivas() {
+            const ou = document.getElementById('disc-inp-ou').value.trim();
+            if (!ou) {
+                alert("Informe ou selecione o código OU da turma.");
+                return;
+            }
+            try {
+                const res = await fetch(`/api/discursivas/auditoria/${ou}`);
+                if (!res.ok) {
+                    alert("Nenhum relatório de auditoria de coerência encontrado para esta turma ainda. Conclua uma avaliação primeiro.");
+                    return;
+                }
+                const data = await res.json();
+                document.getElementById('audit-disc-nome').textContent = data.disciplina || ou;
+                document.getElementById('audit-disc-info').textContent = `OU: ${data.ou} | Média da Turma: ${data.media_turma} / ${data.valor_maximo} pts`;
+                document.getElementById('audit-disc-tot').textContent = data.total_avaliados;
+                document.getElementById('audit-disc-med').textContent = `${data.media_turma} / ${data.valor_maximo}`;
+                document.getElementById('audit-disc-inc').textContent = (data.incoerencias || []).length;
+
+                const lista = document.getElementById('audit-disc-lista');
+                const alunos = data.estudantes || [];
+                if (alunos.length === 0) {
+                    lista.innerHTML = `<p class="text-slate-500 text-center py-4">Nenhum estudante registrado.</p>`;
+                } else {
+                    lista.innerHTML = alunos.map(al => `
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-slate-200">${al.aluno}</span>
+                                <span class="text-xs font-bold text-emerald-400">${al.nota.toFixed(2)} / ${al.nota_max.toFixed(2)} pts (${al.qualidade})</span>
+                            </div>
+                            ${al.plagio ? `<div class="text-[10px] text-rose-400 font-semibold">PLÁGIO DETECTADO (${al.similaridade_pct}%)</div>` : ''}
+                            ${(al.descontos && al.descontos.length > 0) ? `
+                                <div class="text-[11px] text-slate-400 border-t border-slate-800/80 pt-1">
+                                    <strong class="text-slate-300">Justificativas Qualitativas de Desconto:</strong>
+                                    <ul class="list-disc pl-4 space-y-0.5 mt-0.5">
+                                        ${al.descontos.map(d => `<li>${d}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : `<div class="text-[10px] text-emerald-500">Pontuação integral atingida sem descontos.</div>`}
+                        </div>
+                    `).join('');
+                }
+                document.getElementById('modal-auditoria-discursivas').classList.remove('hidden');
+            } catch (err) {
+                alert("Erro ao buscar auditoria: " + err.message);
+            }
+        }
+
+        function fecharModalAuditoriaDiscursivas() {
+            document.getElementById('modal-auditoria-discursivas').classList.add('hidden');
+        }
+
+        async function carregarCursos() {
+            const btn = document.getElementById('btn-descobrir');
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Mapeando...`;
+            btn.disabled = true;
+
+            const username = document.getElementById('inp-username').value;
+            const password = document.getElementById('inp-password').value;
+            const headless = document.getElementById('chk-headless').checked;
+
+            try {
+                const res = await fetch('/api/discover', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, headless })
+                });
+                const data = await res.json();
+                catalogoTurmas = data.disciplinas_por_aba || {};
+                
+                // Popular seletor de abas
+                const selAba = document.getElementById('sel-aba-turmas');
+                selAba.innerHTML = '';
+                (data.abas || ['Fixado']).forEach(aba => {
+                    const opt = document.createElement('option');
+                    opt.value = aba;
+                    opt.textContent = aba;
+                    selAba.appendChild(opt);
+                });
+
+                atualizarListaTurmas();
+                atualizarSeletorTurmasDiscursiva();
+            } catch (err) {
+                alert("Falha ao mapear turmas: " + err);
+            } finally {
+                btn.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> Mapear Turmas`;
+                btn.disabled = false;
+            }
+        }
+
+        function atualizarListaTurmas() {
+            const aba = document.getElementById('sel-aba-turmas').value;
+            const lista = catalogoTurmas[aba] || [];
+            const container = document.getElementById('lista-turmas-container');
+            container.innerHTML = '';
+
+            if (lista.length === 0) {
+                container.innerHTML = `<p class="text-slate-500 text-center py-4">Nenhuma turma encontrada nesta aba.</p>`;
+                return;
+            }
+
+            lista.forEach(c => {
+                const isSelected = turmasSelecionadas.some(t => t.ou === c.ou);
+                const div = document.createElement('div');
+                div.className = "flex items-center gap-2 p-1.5 hover:bg-slate-900 rounded";
+                div.innerHTML = `
+                    <input type="checkbox" id="chk-ou-${c.ou}" ${isSelected ? 'checked' : ''} onchange="toggleTurma('${c.ou}', '${c.name.replace(/'/g, "\\'")}')" class="rounded text-brand-600">
+                    <label for="chk-ou-${c.ou}" class="cursor-pointer text-slate-300 flex-1 truncate" title="${c.name}">
+                        <span class="font-mono text-[10px] text-brand-400 mr-1">[${c.ou}]</span> ${c.name}
+                    </label>
+                `;
+                container.appendChild(div);
+            });
+            atualizarContadorTurmas();
+        }
+
+        function toggleTurma(ou, name) {
+            const idx = turmasSelecionadas.findIndex(t => t.ou === ou);
+            if (idx >= 0) {
+                turmasSelecionadas.splice(idx, 1);
+            } else {
+                turmasSelecionadas.push({ ou, name });
+            }
+            atualizarContadorTurmas();
+        }
+
+        function selecionarTodasTurmas(selecionar) {
+            const aba = document.getElementById('sel-aba-turmas').value;
+            const lista = catalogoTurmas[aba] || [];
+            if (selecionar) {
+                lista.forEach(c => {
+                    if (!turmasSelecionadas.some(t => t.ou === c.ou)) {
+                        turmasSelecionadas.push(c);
+                    }
+                });
+            } else {
+                turmasSelecionadas = [];
+            }
+            atualizarListaTurmas();
+        }
+
+        function atualizarContadorTurmas() {
+            document.getElementById('txt-turmas-selecionadas').textContent = `${turmasSelecionadas.length} turma(s) selecionada(s)`;
+        }
+
+        async function inspecionarTurma() {
+            if (turmasSelecionadas.length === 0) {
+                alert("Selecione pelo menos uma turma para inspecionar.");
+                return;
+            }
+            const turma = turmasSelecionadas[0];
+            const btn = document.getElementById('btn-inspecionar');
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Inspecionando...`;
+            btn.disabled = true;
+
+            const username = document.getElementById('inp-username').value;
+            const password = document.getElementById('inp-password').value;
+            const headless = document.getElementById('chk-headless').checked;
+
+            try {
+                const res = await fetch('/api/inspect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username,
+                        password,
+                        ou: turma.ou,
+                        nome: turma.name,
+                        headless
+                    })
+                });
+                const plano = await res.json();
+                
+                // Exibir painel de apoio
+                document.getElementById('painel-apoio').classList.remove('hidden');
+                document.getElementById('apoio-nome-disc').textContent = plano.disciplina;
+                document.getElementById('apoio-regra-badge').textContent = plano.regra_curricular === '2_UNIDADES' ? '2 Unidades (Fórum 2,5)' : '4 Unidades (Fórum 1,0 + Ativ 1,5)';
+                
+                document.getElementById('apoio-forum-pts').textContent = plano.forum.valor + ' pts';
+                document.getElementById('apoio-forum-pend').textContent = plano.forum.total_pendentes;
+                document.getElementById('apoio-forum-tot').textContent = plano.forum.total_geral;
+                document.getElementById('apoio-forum-cmd').textContent = plano.forum.comando || 'Nenhum comando extraído.';
+
+                document.getElementById('apoio-ativ-pts').textContent = plano.atividade_aberta.ativa ? (plano.atividade_aberta.valor + ' pts') : 'Desativada';
+                document.getElementById('apoio-ativ-pend').textContent = plano.atividade_aberta.total_pendentes;
+                document.getElementById('apoio-ativ-tot').textContent = plano.atividade_aberta.total_geral;
+                document.getElementById('apoio-ativ-inst').textContent = plano.atividade_aberta.instrucoes || 'Sem instruções extraídas.';
+
+                document.getElementById('apoio-prova-enun').textContent = plano.prova_presencial.enunciado_discursiva || 'Discursiva mapeada.';
+            } catch (err) {
+                alert("Erro ao inspecionar: " + err);
+            } finally {
+                btn.innerHTML = `<i class="fa-solid fa-microscope text-brand-400"></i> Inspecionar`;
+                btn.disabled = false;
+            }
+        }
+
+        async function iniciarExecucao() {
+            if (turmasSelecionadas.length === 0) {
+                alert("Selecione pelo menos uma turma para iniciar as correções.");
+                return;
+            }
+
+            const ativs = [];
+            if (document.getElementById('chk-ativ-forum').checked) ativs.push('forum');
+            if (document.getElementById('chk-ativ-aberta').checked) ativs.push('atividade_aberta');
+            if (document.getElementById('chk-ativ-prova').checked) ativs.push('prova_presencial');
+
+            if (ativs.length === 0) {
+                alert("Selecione pelo menos um tipo de atividade.");
+                return;
+            }
+
+            const body = {
+                username: document.getElementById('inp-username').value,
+                password: document.getElementById('inp-password').value,
+                disciplinas: turmasSelecionadas,
+                atividades: ativs,
+                modo: document.getElementById('sel-modo').value,
+                headless: document.getElementById('chk-headless').checked
+            };
+
+            try {
+                await fetch('/api/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                document.getElementById('btn-iniciar').disabled = true;
+                document.getElementById('btn-parar').disabled = false;
+            } catch (err) {
+                alert("Falha ao iniciar: " + err);
+            }
+        }
+
+        async function pararExecucao() {
+            try {
+                await fetch('/api/stop', { method: 'POST' });
+            } catch (err) {
+                alert("Erro ao solicitar parada: " + err);
+            }
+        }
+
+        // Polling de Status e Logs
+        setInterval(async () => {
+            try {
+                const res = await fetch('/api/status');
+                const st = await res.json();
+                
+                // Atualizar badges
+                const dot = document.getElementById('motor-dot');
+                const statusTxt = document.getElementById('motor-status-txt');
+                const btnIniciar = document.getElementById('btn-iniciar');
+                const btnParar = document.getElementById('btn-parar');
+
+                const btnDiscIniciar = document.getElementById('btn-disc-iniciar');
+                const btnDiscParar = document.getElementById('btn-disc-parar');
+                const discBadge = document.getElementById('disc-status-badge');
+                const discBar = document.getElementById('disc-bar-progresso');
+                const discProg = document.getElementById('disc-met-prog');
+                const discAval = document.getElementById('disc-met-aval');
+                const discPlag = document.getElementById('disc-met-plag');
+                const discStage = document.getElementById('disc-txt-stage');
+                const discAluno = document.getElementById('disc-txt-aluno');
+
+                if (st.is_running) {
+                    dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-ping";
+                    statusTxt.textContent = "Executando...";
+                    btnIniciar.disabled = true;
+                    btnParar.disabled = false;
+
+                    if (btnDiscIniciar) btnDiscIniciar.disabled = true;
+                    if (btnDiscParar) btnDiscParar.disabled = false;
+                    if (discBadge) {
+                        discBadge.className = "px-2.5 py-1 text-xs rounded-full bg-amber-950 text-amber-400 border border-amber-800 font-semibold animate-pulse";
+                        discBadge.textContent = "Avaliando Turma...";
+                    }
+                } else {
+                    dot.className = "w-2 h-2 rounded-full bg-emerald-500";
+                    statusTxt.textContent = "Sistema Pronto";
+                    btnIniciar.disabled = false;
+                    btnParar.disabled = true;
+
+                    if (btnDiscIniciar) btnDiscIniciar.disabled = false;
+                    if (btnDiscParar) btnDiscParar.disabled = true;
+                    if (discBadge) {
+                        discBadge.className = "px-2.5 py-1 text-xs rounded-full bg-slate-950 text-slate-400 border border-slate-800 font-semibold";
+                        discBadge.textContent = "Sistema Pronto";
+                    }
+                }
+
+                // Métricas Painel Geral
+                document.getElementById('met-progress').textContent = `${st.progress_percent}%`;
+                document.getElementById('bar-progresso').style.width = `${st.progress_percent}%`;
+                document.getElementById('met-avaliados').textContent = st.statistics?.avaliados || 0;
+                document.getElementById('met-auditados').textContent = st.statistics?.auditados || 0;
+                document.getElementById('met-ajustados').textContent = st.statistics?.ajustados || 0;
+                document.getElementById('met-plagios').textContent = st.statistics?.plagios_detectados || 0;
+
+                document.getElementById('txt-status-estagio').textContent = st.current_stage || "Pronto";
+                document.getElementById('txt-status-aluno').textContent = st.current_student ? `Estudante: ${st.current_student}` : "";
+
+                // Métricas Aba Discursivas
+                if (discBar) discBar.style.width = `${st.progress_percent}%`;
+                if (discProg) discProg.textContent = `${st.progress_percent}%`;
+                if (discAval) discAval.textContent = st.statistics?.avaliados || 0;
+                if (discPlag) discPlag.textContent = st.statistics?.plagios_detectados || 0;
+                if (discStage) discStage.textContent = st.current_stage || "Pronto para iniciar correções discursivas.";
+                if (discAluno) discAluno.textContent = st.current_student ? `Estudante: ${st.current_student}` : "";
+
+                // Logs
+                if (st.logs && st.logs.length > 0) {
+                    const term = document.getElementById('terminal-logs');
+                    term.innerHTML = st.logs.map(l => {
+                        let col = "text-slate-300";
+                        if (l.level === "WARN") col = "text-amber-400";
+                        if (l.level === "ERROR") col = "text-rose-400";
+                        return `<div class="${col}"><span class="text-slate-500">[${l.timestamp}]</span> ${l.message}</div>`;
+                    }).join('');
+                    term.scrollTop = term.scrollHeight;
+                }
+            } catch (err) {}
+        }, 1500);
+
+        // ==========================================
+        // Funções do Explorador de Relatórios
+        // ==========================================
+        async function carregarHistoricoRelatorios() {
+            const tbody = document.getElementById('tbody-relatorios');
+            try {
+                const res = await fetch('/api/relatorios');
+                const lista = await res.json();
+
+                if (!lista || lista.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500">Nenhum relatório histórico encontrado.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = lista.map(r => `
+                    <tr class="hover:bg-slate-900 transition">
+                        <td class="px-4 py-3 font-mono text-brand-300 font-semibold">${r.data}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-[11px] uppercase">${r.modo}</span></td>
+                        <td class="px-4 py-3 text-slate-300">${r.docente}</td>
+                        <td class="px-4 py-3 font-semibold text-emerald-400">${r.total}</td>
+                        <td class="px-4 py-3 ${r.plagios > 0 ? 'text-rose-400 font-bold' : 'text-slate-500'}">${r.plagios}</td>
+                        <td class="px-4 py-3 text-right space-x-2">
+                            <button onclick="abrirDetalhesRelatorio('${r.id}')" class="px-2.5 py-1 bg-brand-600/20 hover:bg-brand-600 text-brand-300 hover:text-white border border-brand-500/30 rounded text-xs transition">
+                                <i class="fa-solid fa-eye"></i> Detalhes
+                            </button>
+                            <a href="/api/relatorios/${r.id}/csv" download class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs transition">
+                                <i class="fa-solid fa-download"></i> CSV
+                            </a>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-rose-500">Erro ao carregar relatórios.</td></tr>`;
+            }
+        }
+
+        async function abrirDetalhesRelatorio(id) {
+            try {
+                const res = await fetch(`/api/relatorios/${id}`);
+                const data = await res.json();
+                relatorioAtualCache = data;
+
+                document.getElementById('modal-sessao-id').textContent = id;
+                document.getElementById('modal-sessao-info').textContent = `Data: ${data.data_execucao} | Modo: ${data.modo.toUpperCase()} | Docente: ${data.docente}`;
+                
+                renderizarItensModal(data.itens || []);
+                document.getElementById('modal-detalhes-relatorio').classList.remove('hidden');
+            } catch (err) {
+                alert("Falha ao abrir detalhes do relatório: " + err);
+            }
+        }
+
+        function renderizarItensModal(itens) {
+            const container = document.getElementById('modal-itens-container');
+            if (itens.length === 0) {
+                container.innerHTML = `<p class="text-slate-500 text-center py-6">Nenhum registro para exibir.</p>`;
+                return;
+            }
+
+            container.innerHTML = itens.map(it => `
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div class="space-y-1">
+                        <div class="font-bold text-slate-200 flex items-center gap-2">
+                            <span>${it.aluno}</span>
+                            ${it.plagio ? `<span class="px-2 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800 text-[10px] font-bold">PLÁGIO ${it.similaridade_pct}%</span>` : ''}
+                        </div>
+                        <div class="text-slate-400 text-[11px] flex gap-3">
+                            <span><strong>Disciplina:</strong> ${it.disciplina} (${it.ou})</span>
+                            <span><strong>Atividade:</strong> ${it.atividade}</span>
+                            <span><strong>Conceito:</strong> ${it.qualidade}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 self-end md:self-auto">
+                        <div class="text-right">
+                            <div class="text-xs text-slate-400">Nota Atribuída</div>
+                            <div class="text-sm font-bold text-emerald-400">${it.nota} <span class="text-slate-500 font-normal">/ ${it.nota_max}</span></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filtrarItensModal() {
+            if (!relatorioAtualCache || !relatorioAtualCache.itens) return;
+            const termo = document.getElementById('modal-filtro-busca').value.toLowerCase();
+            const filtrados = relatorioAtualCache.itens.filter(it => 
+                it.aluno.toLowerCase().includes(termo) ||
+                it.disciplina.toLowerCase().includes(termo) ||
+                it.atividade.toLowerCase().includes(termo)
+            );
+            renderizarItensModal(filtrados);
+        }
+
+        function fecharModalDetalhes() {
+            document.getElementById('modal-detalhes-relatorio').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
+

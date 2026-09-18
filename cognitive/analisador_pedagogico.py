@@ -28,12 +28,19 @@ class AnalisadorPedagogico:
         texto_limpo = (texto_aluno or "").strip()
         palavras = len(re.findall(r"\b\w+\b", texto_limpo))
         
-        # Caso 1: Envio totalmente em branco ou vazio
+        # Caso 1: Envio totalmente em branco, vazio ou "-Nenhum texto inserido-"
         arquivos_count = metadados_envio.get("arquivos_count", 0)
         tem_anexos = metadados_envio.get("tem_anexos", False) or arquivos_count > 0
+        texto_lower = texto_limpo.lower()
+        is_nenhum_texto = (
+            palavras < 5
+            or "nenhum texto inserido" in texto_lower
+            or "-nenhum texto inserido-" in texto_lower
+            or "sem resposta" in texto_lower
+        )
 
         # Só considera em branco se não houver texto E não houver arquivos anexados
-        if palavras < 5 and not tem_anexos:
+        if is_nenhum_texto and not tem_anexos:
             return {
                 "nota_sugerida": 0.0,
                 "nota_maxima": nota_maxima,
@@ -43,7 +50,7 @@ class AnalisadorPedagogico:
                 "redacao": 0.0,
                 "cumprimento_regras": 0.0,
                 "pontos_fortes": [],
-                "pontos_melhoria": ["Ausência de conteúdo relevante ou envio em branco."],
+                "pontos_melhoria": ["Não houve resposta apresentada para a questão discursiva (-Nenhum texto inserido-)."],
                 "diagnostico_resumido": "Submissão sem conteúdo textual identificável."
             }
 
@@ -63,9 +70,22 @@ class AnalisadorPedagogico:
         cobertura_conceitual = 0.7  # Valor base razoável
         if termos_chave_comando:
             intersecao = tokens_aluno & termos_chave_comando
+            if len(intersecao) == 0 and not tem_anexos:
+                return {
+                    "nota_sugerida": 0.0,
+                    "nota_maxima": nota_maxima,
+                    "qualidade_geral": "Insuficiente",
+                    "aderencia_tema": 0.0,
+                    "fundamentacao": 0.0,
+                    "redacao": 0.0,
+                    "cumprimento_regras": 0.0,
+                    "pontos_fortes": [],
+                    "pontos_melhoria": ["A resposta apresentada não correspondeu com a proposta da questão solicitada no enunciado."],
+                    "diagnostico_resumido": "Fuga ao tema: nenhum conceito do enunciado abordado na resposta."
+                }
             meta_termos = max(2, min(len(termos_chave_comando) * 0.4, 6))
             razao_cobertura = len(intersecao) / meta_termos
-            cobertura_conceitual = min(1.0, max(0.3, razao_cobertura))
+            cobertura_conceitual = min(1.0, max(0.0, razao_cobertura))
 
         # 2. Análise de Profundidade e Fundamentação
         # Avalia volume reflexivo e presença de conectivos argumentativos

@@ -428,13 +428,24 @@ class MotorDiscursivas:
             "relatorio_comparacao": None
         }
 
-        # 2. Resposta em branco ou insuficiente (< 5 palavras)
-        if palavras < 5:
-            desconto_branco = "Questão discursiva sem desenvolvimento textual relevante ou entregue em branco."
+        # 2. Resposta em branco, insuficiente ou "-Nenhum texto inserido-"
+        texto_lower = texto.lower()
+        letras_count = len(re.findall(r"[a-zA-ZáéíóúâêîôûãõçÁÉÍÓÚÂÊÎÔÛÃÕÇ]", texto))
+        is_sem_resposta = (
+            palavras < 5
+            or "nenhum texto inserido" in texto_lower
+            or "-nenhum texto inserido-" in texto_lower
+            or "sem resposta" in texto_lower
+            or letras_count < 15
+        )
+
+        if is_sem_resposta:
+            desconto_branco = "Não houve resposta apresentada para a questão discursiva (-Nenhum texto inserido-)."
             feedback_html = (
                 f"<p>Sua resposta para a Questão Discursiva da Prova Presencial foi avaliada com a pontuação de <strong>0,00 de {valor_maximo:.2f} pontos</strong>.</p>"
                 f"<p><strong>Motivos do não atingimento da totalidade da nota:</strong></p>"
                 f"<ul><li>{desconto_branco}</li></ul>"
+                f"<p>Continue empenhado(a) em articular os conceitos teóricos aos desafios práticos da disciplina. Conte com o apoio docente!</p>"
             )
             return {
                 "nota": 0.0,
@@ -456,40 +467,95 @@ class MotorDiscursivas:
                 rads.add(w_base if len(w_base) >= 4 else w[:4])
             return rads
 
-        stopwords_rad = {"para", "como", "pelo", "onde", "quando", "sobr", "entr", "est", "muit", "mais", "qual", "dev", "alun", "respost", "questa", "expliqu", "apresent", "disciplin"}
+        stopwords_rad = {
+            "para", "como", "pelo", "pela", "onde", "quando", "sobr", "entr", "est", "muit",
+            "mais", "qual", "quais", "dev", "alun", "respost", "questa", "expliqu", "apresent",
+            "disciplin", "com", "sem", "por", "que", "ess", "aquil", "voc", "sua", "seus", "suas"
+        }
         rads_comando = _extrair_radicais(enunciado) - stopwords_rad
-        rads_aluno = _extrair_radicais(texto)
-
-        # Critério 1: Domínio Conceitual (peso ~0,70)
-        if rads_comando:
-            intersecao = rads_aluno & rads_comando
-            meta_radicais = max(2, min(len(rads_comando) * 0.4, 5))
-            cobertura = len(intersecao) / meta_radicais
-            cobertura = min(1.0, max(0.4, cobertura))
+        if self.resposta_esperada_atual:
+            rads_padrao = _extrair_radicais(self.resposta_esperada_atual) - stopwords_rad
+            rads_referencia = rads_comando | rads_padrao
         else:
-            cobertura = 0.85
+            rads_referencia = rads_comando
+
+        rads_aluno = _extrair_radicais(texto)
+        intersecao = rads_aluno & rads_referencia
+
+        # 3.1 Verificação de correspondência com a proposta da questão (Fuga ao tema)
+        # Se a resposta não contém nenhum radical em comum com os conceitos solicitados
+        if len(intersecao) == 0 and len(rads_referencia) > 0:
+            desconto_fuga = "A resposta apresentada não correspondeu com a proposta da questão solicitada no enunciado."
+            feedback_html = (
+                f"<p>Sua resposta para a Questão Discursiva da Prova Presencial foi avaliada com a pontuação de <strong>0,00 de {valor_maximo:.2f} pontos</strong>.</p>"
+                f"<p><strong>Motivos do não atingimento da totalidade da nota:</strong></p>"
+                f"<ul><li>{desconto_fuga}</li></ul>"
+                f"<p>Continue empenhado(a) em articular os conceitos teóricos aos desafios práticos da disciplina. Conte com o apoio docente!</p>"
+            )
+            return {
+                "nota": 0.0,
+                "nota_max": valor_maximo,
+                "qualidade": "Insuficiente",
+                "descontos": [desconto_fuga],
+                "pontos_fortes": [],
+                "feedback_html": feedback_html,
+                "plagio": False,
+                "similaridade_pct": 0.0
+            }
+
+        # 3.2 Cálculo das notas por critério quando há correspondência
+        # Critério 1: Domínio Conceitual (peso ~0,70)
+        meta_radicais = max(2, min(len(rads_referencia) * 0.4, 5))
+        cobertura = len(intersecao) / meta_radicais
+        cobertura = min(1.0, max(0.0, cobertura))
 
         p1 = criterios[0]["peso"] if len(criterios) > 0 else 0.70
         nota_c1 = round(p1 * cobertura, 2)
 
         # Critério 2: Aplicação Prática e Exemplos (peso ~0,80)
         p2 = criterios[1]["peso"] if len(criterios) > 1 else 0.80
-        tem_exemplos = any(k in texto.lower() for k in ["exemplo", "exemplos", "como por exemplo", "aplicação", "sistema", "empresa", "organização", "caso"])
-        if palavras >= 70 and tem_exemplos:
+        tem_exemplos = any(k in texto.lower() for k in ["exemplo", "exemplos", "como por exemplo", "aplicação", "sistema", "empresa", "organização", "caso", "cenário"])
+        if palavras >= 60 and tem_exemplos:
             nota_c2 = p2
-        elif palavras >= 40 or tem_exemplos:
-            nota_c2 = round(p2 * 0.70, 2)
+        elif tem_exemplos or palavras >= 40:
+            nota_c2 = round(p2 * 0.50, 2)
         else:
-            nota_c2 = round(p2 * 0.40, 2)
+            nota_c2 = 0.0
 
         # Critério 3: Clareza e Norma Culta (peso ~0,50)
         p3 = criterios[2]["peso"] if len(criterios) > 2 else 0.50
-        nota_c3 = p3 if palavras >= 50 else round(p3 * 0.70, 2)
+        if nota_c1 == 0:
+            nota_c3 = 0.0
+        elif palavras >= 50:
+            nota_c3 = p3
+        elif palavras >= 25:
+            nota_c3 = round(p3 * 0.60, 2)
+        else:
+            nota_c3 = round(p3 * 0.30, 2)
 
         nota_total = round(nota_c1 + nota_c2 + nota_c3, 2)
         # Arredondamento para múltiplos de 0.05
         nota_total = round(nota_total * 20) / 20
         nota_total = min(valor_maximo, max(0.0, nota_total))
+
+        if nota_total == 0.0:
+            desconto_insuf = "A resposta apresentada não atingiu o desenvolvimento mínimo exigido para atendimento aos critérios da questão."
+            feedback_html = (
+                f"<p>Sua resposta para a Questão Discursiva da Prova Presencial foi avaliada com a pontuação de <strong>0,00 de {valor_maximo:.2f} pontos</strong>.</p>"
+                f"<p><strong>Motivos do não atingimento da totalidade da nota:</strong></p>"
+                f"<ul><li>{desconto_insuf}</li></ul>"
+                f"<p>Continue empenhado(a) em articular os conceitos teóricos aos desafios práticos da disciplina. Conte com o apoio docente!</p>"
+            )
+            return {
+                "nota": 0.0,
+                "nota_max": valor_maximo,
+                "qualidade": "Insuficiente",
+                "descontos": [desconto_insuf],
+                "pontos_fortes": [],
+                "feedback_html": feedback_html,
+                "plagio": False,
+                "similaridade_pct": 0.0
+            }
 
         # 4. Análise Qualitativa dos Critérios e Mapeamento de Descontos (Sem valores numéricos de dedução)
         c1_nome = criterios[0]["nome"] if len(criterios) > 0 else "Diagnóstico Conceitual"
@@ -710,7 +776,10 @@ class MotorDiscursivas:
                 texto_resposta = self._extrair_resposta_aluno(page)
 
             palavras_resp = len(texto_resposta.split())
-            state.log(f"{pos_str}{nome_aluno}: Resposta identificada ({palavras_resp} palavras).")
+            if not texto_resposta.strip() or "nenhum texto inserido" in texto_resposta.lower():
+                state.log(f"{pos_str}{nome_aluno}: Sem resposta discursiva (-Nenhum texto inserido-).")
+            else:
+                state.log(f"{pos_str}{nome_aluno}: Resposta identificada ({palavras_resp} palavras).")
 
             # Avaliar pela rubrica analítica
             diag = self.avaliar_estudante(

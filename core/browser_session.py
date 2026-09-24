@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import time
 from pathlib import Path
@@ -11,6 +12,19 @@ from engine_state import state
 def obter_caminho_auth(username: str) -> Path:
     base = Path(__file__).resolve().parent.parent
     return base / f"auth_state_{username}.json"
+
+def obter_primeiro_nome_docente(docente: str) -> str:
+    """Extrai e capitaliza apenas o primeiro nome do docente para assinaturas (ex: 'Prof. Luiz')."""
+    if not docente:
+        return "Avaliador"
+    limpo = re.sub(r'^(prof(a|essor|essora)?\.?\s*)+', '', docente.strip(), flags=re.IGNORECASE).strip()
+    partes = limpo.split()
+    if partes:
+        primeiro = partes[0].capitalize()
+        if len(partes) > 1 and primeiro.lower() in ["ana", "maria", "joão", "joao"]:
+            return f"{primeiro} {partes[1].capitalize()}"
+        return primeiro
+    return "Avaliador"
 
 class BrowserSession:
     """
@@ -114,17 +128,35 @@ class BrowserSession:
 
     def detectar_docente(self):
         try:
-            # Tentar extrair nome do menu superior de perfil
-            btn_user = self.page.locator("d2l-navigation-button-notification-icon, .d2l-navigation-s-personal-menu, span.d2l-navigation-s-personal-menu-text")
-            if btn_user.count() > 0:
-                texto = btn_user.first.inner_text().strip()
-                if texto and len(texto) > 3:
-                    if not texto.lower().startswith("prof"):
-                        self.nome_docente = f"Prof. {texto}"
-                    else:
-                        self.nome_docente = texto
-                    state.log(f"Docente autenticado(a): {self.nome_docente}")
-                    return
+            # Tentar extrair nome do menu superior de perfil (light DOM ou shadow DOM)
+            nome_extraido = self.page.evaluate("""() => {
+                function querySelectorAllDeep(selector, root = document) {
+                    let results = Array.from(root.querySelectorAll(selector));
+                    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+                    let node;
+                    while (node = walker.nextNode()) {
+                        if (node.shadowRoot) {
+                            results = results.concat(querySelectorAllDeep(selector, node.shadowRoot));
+                        }
+                    }
+                    return results;
+                }
+                const els = querySelectorAllDeep('.d2l-navigation-s-personal-menu, .d2l-navigation-s-personal-menu-text, d2l-labs-navigation-dropdown-button-custom');
+                for (const el of els) {
+                    const txt = (el.innerText || '').trim();
+                    if (txt && txt.length > 3 && !txt.toLowerCase().includes('carregando')) {
+                        return txt;
+                    }
+                }
+                return null;
+            }""")
+            if nome_extraido:
+                if not nome_extraido.lower().startswith("prof"):
+                    self.nome_docente = f"Prof. {nome_extraido}"
+                else:
+                    self.nome_docente = nome_extraido
+                state.log(f"Docente autenticado(a): {self.nome_docente}")
+                return
         except Exception:
             pass
         self.nome_docente = "Prof. Arly Cristopher Nascimento Alves"

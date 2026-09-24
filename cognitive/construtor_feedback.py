@@ -135,6 +135,8 @@ class ConstrutorFeedback:
         paragrafos.append(
             f"<p>Continue se dedicando aos estudos e conte com o apoio docente na sua trajetória acadêmica!</p>"
         )
+        primeiro_doc = extrair_primeiro_nome(nome_docente)
+        paragrafos.append(f"<p>Atenciosamente, Prof. {primeiro_doc}</p>")
 
         return "".join(paragrafos)
 

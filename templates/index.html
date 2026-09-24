@@ -899,9 +899,10 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
                 const selAba = document.getElementById('sel-aba-turmas');
                 selAba.innerHTML = '';
                 (data.abas || ['Fixado']).forEach(aba => {
+                    const count = (catalogoTurmas[aba] || []).length;
                     const opt = document.createElement('option');
                     opt.value = aba;
-                    opt.textContent = aba;
+                    opt.textContent = `${aba} (${count})`;
                     selAba.appendChild(opt);
                 });
 

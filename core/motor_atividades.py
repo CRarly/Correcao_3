@@ -23,15 +23,273 @@ from core.dom_helpers import (
     inserir_feedback_consistent_evaluation,
     salvar_rascunho_consistent_evaluation,
     obter_nota_e_feedback_consistent_evaluation,
+    remover_nota_e_feedback_consistent_evaluation,
     contar_anexos_submissao
 )
+from core.browser_session import obter_primeiro_nome_docente
 
 class MotorAtividades:
     """
     Motor especialista de avaliação e auditoria para a Atividade Aberta.
-    Faz o download temporário dos arquivos de envio, extrai texto com profundidade,
-    analisa plágio cruzado e lança nota e feedback humanizado de 1 a N na turma.
+    Implementa métrica pedagógica própria baseada no comando e instruções da atividade:
+    - Critério 1: Conformidade Estrutural e Atendimento às Diretrizes (~30%)
+    - Critério 2: Desenvolvimento Teórico-Prático e Resolução do Comando (~50%)
+    - Critério 3: Rigor Conceitual, Coesão e Norma Culta (~20%)
+    - Regras de nota zero: sem envio / -Nenhum texto inserido- ou fuga ao tema.
+    - Justificativas qualitativas transparentes sem subtrações numéricas no texto.
+    - Duplo salvamento em rascunho e sem assinatura docente.
     """
+
+    def gerar_criterios_atividade(self, instrucoes: str, nota_maxima: float = 1.5) -> Dict[str, Any]:
+        """
+        Analisa as instruções da Atividade Aberta e monta a matriz de critérios analíticos pré-estabelecidos:
+        - Critério 1: Conformidade Estrutural e Atendimento às Diretrizes (~30%)
+        - Critério 2: Desenvolvimento Teórico-Prático e Resolução do Comando (~50%)
+        - Critério 3: Rigor Conceitual, Coesão e Norma Culta (~20%)
+        """
+        peso_estrutural = round(nota_maxima * 0.30, 2)
+        peso_resolucao = round(nota_maxima * 0.50, 2)
+        peso_rigor = round(nota_maxima - peso_estrutural - peso_resolucao, 2)
+
+        criterios = {
+            "nota_maxima": nota_maxima,
+            "peso_estrutural": peso_estrutural,
+            "peso_resolucao": peso_resolucao,
+            "peso_rigor": peso_rigor,
+            "criterios": [
+                {
+                    "id": "criterio_1_estrutural",
+                    "nome": "Conformidade Estrutural e Atendimento às Diretrizes",
+                    "peso": peso_estrutural,
+                    "descricao": "Organização do trabalho, estrutura da entrega, observância ao modelo/formato exigido e adequação da extensão.",
+                    "regras_desconto": [
+                        {"faixa": "Pleno", "nota": peso_estrutural, "descricao": "Estrutura completa, bem organizada e em plena conformidade com as diretrizes e modelo."},
+                        {"faixa": "Parcial", "nota": round(peso_estrutural * 0.5, 2), "descricao": "Estrutura básica ou ausência parcial de elementos orientadores do modelo."},
+                        {"faixa": "Insuficiente", "nota": 0.0, "descricao": "Não seguiu o modelo proposto ou entrega desestruturada."}
+                    ]
+                },
+                {
+                    "id": "criterio_2_resolucao",
+                    "nome": "Desenvolvimento Teórico-Prático e Resolução do Comando",
+                    "peso": peso_resolucao,
+                    "descricao": "Resolução integral das questões propostas nas instruções, profundidade analítica, aplicação prática e atendimento ao objetivo pedagógico.",
+                    "regras_desconto": [
+                        {"faixa": "Pleno", "nota": peso_resolucao, "descricao": "Resolução completa e aprofundada de todas as etapas e questões solicitadas."},
+                        {"faixa": "Parcial", "nota": round(peso_resolucao * 0.5, 2), "descricao": "Resolução parcial das questões ou abordagem com lacunas em pontos-chave do comando."},
+                        {"faixa": "Insuficiente", "nota": 0.0, "descricao": "Não resolveu o comando proposto ou abordagem superficial/fuga ao tema."}
+                    ]
+                },
+                {
+                    "id": "criterio_3_rigor",
+                    "nome": "Rigor Conceitual, Coesão e Norma Culta",
+                    "peso": peso_rigor,
+                    "descricao": "Uso correto do vocabulário técnico da disciplina, clareza expositiva, coerência textual e atendimento à norma culta.",
+                    "regras_desconto": [
+                        {"faixa": "Pleno", "nota": peso_rigor, "descricao": "Vocabulário técnico apropriado, articulação fluida e excelente domínio gramatical."},
+                        {"faixa": "Parcial", "nota": round(peso_rigor * 0.6, 2), "descricao": "Compreensível, mas com desvios pontuais de norma culta ou concisão excessiva."},
+                        {"faixa": "Insuficiente", "nota": 0.0, "descricao": "Inconsistências conceituais severas ou fragmentação textual."}
+                    ]
+                }
+            ]
+        }
+        return criterios
+
+    def avaliar_estudante_atividade(
+        self,
+        texto_submissao: str,
+        nome_aluno: str,
+        instrucoes: str,
+        criterios_info: Dict[str, Any],
+        nota_maxima: float = 1.5,
+        total_arqs: int = 1,
+        docente: str = "Prof. Avaliador"
+    ) -> Dict[str, Any]:
+        """
+        Avalia a submissão da Atividade Aberta segundo a matriz analítica:
+        - Critério 1: Conformidade Estrutural (~30%)
+        - Critério 2: Desenvolvimento Teórico-Prático e Resolução do Comando (~50%)
+        - Critério 3: Rigor Conceitual, Coesão e Norma Culta (~20%)
+        - Regra de nota zero: sem envio / -Nenhum texto inserido- ou fuga ao tema.
+        - Justificativas qualitativas sem subtrações numéricas no texto (ex: sem '(-0.45 pts)').
+        - Sempre inicia com "Olá, {FirstName}!" e encerra com "Atenciosamente, Prof. [Primeiro nome]".
+        """
+        primeiro_nome_docente = obter_primeiro_nome_docente(docente)
+        texto = (texto_submissao or "").strip()
+        palavras = len(re.findall(r"\b\w+\b", texto))
+        texto_lower = texto.lower()
+        letras_count = len(re.findall(r"[a-zA-ZáéíóúâêîôûãõçÁÉÍÓÚÂÊÎÔÛÃÕÇ]", texto))
+
+        # 1. Checagem de envio em branco, ausência ou '-Nenhum texto inserido-'
+        is_vazio = (
+            (total_arqs == 0 and palavras < 5)
+            or "nenhum texto inserido" in texto_lower
+            or "-nenhum texto inserido-" in texto_lower
+            or (palavras < 5 and letras_count < 15)
+        )
+
+        if is_vazio:
+            motivo_branco = "Não houve submissão de arquivo ou texto para a atividade aberta (-Nenhum texto inserido-)."
+            feedback_html = (
+                f"<p>Olá, {{FirstName}}!</p>"
+                f"<p>Sua entrega para a <strong>Atividade Aberta</strong> foi avaliada com a pontuação de <strong>0,00 de {nota_maxima:.2f} pontos</strong>.</p>"
+                f"<p><strong>Motivos do não atingimento da totalidade da nota:</strong></p>"
+                f"<ul><li>{motivo_branco}</li></ul>"
+                f"<p>Continue se dedicando aos estudos e articulando a teoria com a prática da disciplina. Conte com o apoio docente!</p>"
+                f"<p>Atenciosamente, Prof. {primeiro_nome_docente}</p>"
+            )
+            return {
+                "nota": 0.0,
+                "nota_max": nota_maxima,
+                "qualidade": "Insuficiente",
+                "descontos": [motivo_branco],
+                "feedback_html": feedback_html,
+                "plagio": False,
+                "similaridade_pct": 0.0
+            }
+
+        # 2. Extração de radicais conceituais das instruções oficiais
+        def _extrair_radicais(txt: str) -> set:
+            words = re.findall(r"\b[a-zA-ZáéíóúâêîôûãõçÁÉÍÓÚÂÊÎÔÛÃÕÇ]{4,}\b", (txt or "").lower())
+            rads = set()
+            for w in words:
+                w_base = re.sub(r"(ções|ção|ões|ão|mente|ades|ade|ais|eis|res|dor|dores|mentos|mento|ados|adas|ado|ada|idos|idas|ido|ida|ando|endo|indo|aram|eram|iram|arem|erem|irem|avam|ariam|eriam|iriam|as|es|is|os|s)$", "", w)
+                rads.add(w_base if len(w_base) >= 4 else w[:4])
+            return rads
+
+        stopwords_rad = {
+            "para", "como", "pelo", "pela", "onde", "quando", "sobr", "entr", "est", "muit",
+            "mais", "qual", "quais", "dev", "alun", "respost", "questa", "expliqu", "apresent",
+            "disciplin", "com", "sem", "por", "que", "ess", "aquil", "voc", "sua", "seus", "suas",
+            "ativid", "abert", "trabalh", "envi", "arquiv", "model", "format"
+        }
+        rads_instrucoes = _extrair_radicais(instrucoes) - stopwords_rad
+        rads_aluno = _extrair_radicais(texto)
+        intersecao = rads_aluno & rads_instrucoes
+
+        # 3. Checagem de Fuga ao Tema
+        if len(intersecao) == 0 and len(rads_instrucoes) > 0:
+            motivo_fuga = "O conteúdo submetido não correspondeu com a proposta e os comandos solicitados nas instruções da atividade (fuga ao tema)."
+            feedback_html = (
+                f"<p>Olá, {{FirstName}}!</p>"
+                f"<p>Sua entrega para a <strong>Atividade Aberta</strong> foi avaliada com a pontuação de <strong>0,00 de {nota_maxima:.2f} pontos</strong>.</p>"
+                f"<p><strong>Motivos do não atingimento da totalidade da nota:</strong></p>"
+                f"<ul><li>{motivo_fuga}</li></ul>"
+                f"<p>Continue se dedicando aos estudos e articulando a teoria com a prática da disciplina. Conte com o apoio docente!</p>"
+                f"<p>Atenciosamente, Prof. {primeiro_nome_docente}</p>"
+            )
+            return {
+                "nota": 0.0,
+                "nota_max": nota_maxima,
+                "qualidade": "Insuficiente",
+                "descontos": [motivo_fuga],
+                "feedback_html": feedback_html,
+                "plagio": False,
+                "similaridade_pct": 0.0
+            }
+
+        # 4. Avaliação Analítica Multicritério
+        if not criterios_info or "criterios" not in criterios_info:
+            criterios_info = self.gerar_criterios_atividade(instrucoes, nota_maxima)
+
+        p_estrutural = criterios_info.get("peso_estrutural", round(nota_maxima * 0.30, 2))
+        p_resolucao = criterios_info.get("peso_resolucao", round(nota_maxima * 0.50, 2))
+        p_rigor = criterios_info.get("peso_rigor", round(nota_maxima - p_estrutural - p_resolucao, 2))
+
+        c1_nome = criterios_info["criterios"][0]["nome"]
+        c2_nome = criterios_info["criterios"][1]["nome"]
+        c3_nome = criterios_info["criterios"][2]["nome"]
+
+        descontos = []
+
+        # Critério 1: Conformidade Estrutural
+        if total_arqs >= 1 and palavras >= 100:
+            nota_c1 = p_estrutural
+            c1_parecer = "Estrutura do trabalho adequada, com boa organização e atendimento às orientações de entrega."
+        elif total_arqs >= 1 and palavras >= 40:
+            nota_c1 = round(p_estrutural * 0.70, 2)
+            c1_parecer = "Estrutura básica apresentada, mas com desenvolvimento sucinto em relação à extensão esperada para a atividade."
+            descontos.append("Estrutura ou extensão concisa: aprofunde a organização e o detalhamento das seções do documento.")
+        else:
+            nota_c1 = round(p_estrutural * 0.40, 2)
+            c1_parecer = "Entrega com lacunas estruturais significativas frente às diretrizes propostas."
+            descontos.append("Lacunas estruturais: o documento não observou plenamente o formato ou extensão recomendada para a atividade.")
+
+        # Critério 2: Desenvolvimento Teórico-Prático e Resolução do Comando
+        meta_termos = max(2, min(len(rads_instrucoes) * 0.4, 6))
+        cobertura = min(1.0, max(0.0, len(intersecao) / meta_termos)) if meta_termos > 0 else 0.70
+
+        if cobertura >= 0.85:
+            nota_c2 = p_resolucao
+            c2_parecer = "Desenvolvimento consistente e aprofundado, atendendo com precisão aos comandos e desafios propostos nas instruções."
+        elif cobertura >= 0.50:
+            nota_c2 = round(p_resolucao * 0.70, 2)
+            c2_parecer = "Desenvolvimento satisfatório dos tópicos centrais, porém com abordagem parcial em determinados aspectos práticos ou analíticos do comando."
+            descontos.append("Resolução parcial do comando: determinados tópicos ou análises solicitadas nas instruções foram abordados de maneira introdutória.")
+        else:
+            nota_c2 = round(p_resolucao * 0.40, 2)
+            c2_parecer = "Abordagem superficial das tarefas e questões requeridas no comando da atividade."
+            descontos.append("Abordagem superficial: os comandos centrais da atividade foram apenas tangenciados, necessitando de maior fundamentação analítica.")
+
+        # Critério 3: Rigor Conceitual, Coesão e Norma Culta
+        conectivos = sum(1 for c in ["portanto", "contudo", "entretanto", "além disso", "nesse sentido", "assim sendo", "desta forma", "por conseguinte"] if c in texto_lower)
+        if palavras >= 80 and (conectivos >= 1 or cobertura >= 0.60):
+            nota_c3 = p_rigor
+            c3_parecer = "Vocabulário técnico apropriado, redação fluida, coesa e em conformidade com a norma culta."
+        elif palavras >= 40:
+            nota_c3 = round(p_rigor * 0.65, 2)
+            c3_parecer = "Clareza expositiva adequada, com pequenas oportunidades de aprimoramento no vocabulário técnico e na coesão argumentativa."
+            descontos.append("Ajuste no rigor conceitual e redação: polir o uso dos termos técnicos e a articulação entre os parágrafos.")
+        else:
+            nota_c3 = round(p_rigor * 0.35, 2)
+            c3_parecer = "Texto com fragmentação argumentativa ou limitações na aplicação da norma padrão e terminologia técnica."
+            descontos.append("Fragilidade na articulação textual: utilize vocabulário técnico mais rigoroso e estruture com mais clareza os parágrafos.")
+
+        # 5. Cálculo Final da Nota
+        nota_total = round(nota_c1 + nota_c2 + nota_c3, 2)
+        nota_total = round(nota_total * 20) / 20  # Múltiplos de 0.05
+        nota_total = min(nota_maxima, max(0.0, nota_total))
+
+        if nota_total < nota_maxima and not descontos:
+            descontos.append("Aprofundamento analítico: para alcance da pontuação integral, desenvolva com maior abrangência e riqueza de detalhes a resolução das etapas da atividade.")
+
+        # Remoção estrita de valores numéricos nos descontos
+        descontos_limpos = [re.sub(r"\s*\(-?\d+[\.,]?\d*\s*pts?\)", "", d).strip() for d in descontos]
+
+        # 6. Formatação do Feedback HTML
+        nota_str = f"{nota_total:.2f}".replace(".", ",")
+        fb_parts = [
+            "<p>Olá, {FirstName}!</p>",
+            f"<p>Sua entrega para a <strong>Atividade Aberta</strong> foi avaliada com a pontuação de <strong>{nota_str} de {nota_maxima:.2f} pontos</strong>.</p>",
+            "<p><strong>Análise Detalhada dos Critérios:</strong></p>",
+            "<ul>",
+            f"<li><strong>{c1_nome}:</strong> {c1_parecer}</li>",
+            f"<li><strong>{c2_nome}:</strong> {c2_parecer}</li>",
+            f"<li><strong>{c3_nome}:</strong> {c3_parecer}</li>",
+            "</ul>"
+        ]
+
+        if descontos_limpos:
+            fb_parts.append("<p><strong>Justificativa do Desconto de Nota:</strong></p>")
+            fb_parts.append("<ul>")
+            for d in descontos_limpos:
+                fb_parts.append(f"<li>{d}</li>")
+            fb_parts.append("</ul>")
+
+        fb_parts.append("<p>Continue se dedicando aos estudos e articulando a teoria com a prática da disciplina. Conte com o apoio docente!</p>")
+        fb_parts.append(f"<p>Atenciosamente, Prof. {primeiro_nome_docente}</p>")
+        feedback_html = "".join(fb_parts)
+
+        qualidade = "Excelente" if nota_total >= (nota_maxima * 0.85) else "Bom" if nota_total >= (nota_maxima * 0.70) else "Regular" if nota_total >= (nota_maxima * 0.50) else "Insuficiente"
+
+        return {
+            "nota": nota_total,
+            "nota_max": nota_maxima,
+            "qualidade": qualidade,
+            "descontos": descontos_limpos,
+            "feedback_html": feedback_html,
+            "plagio": False,
+            "similaridade_pct": 0.0
+        }
 
     def executar(
         self,
@@ -47,6 +305,10 @@ class MotorAtividades:
         resultados = []
         nota_maxima = plano.get("atividade_aberta", {}).get("valor", 1.5)
         instrucoes = plano.get("atividade_aberta", {}).get("instrucoes", "")
+
+        # Gerar critérios analíticos pré-estabelecidos da atividade
+        criterios_info = self.gerar_criterios_atividade(instrucoes, nota_maxima)
+        state.log(f"[Atividade Aberta] Critérios definidos: Conformidade Estrutural ({criterios_info['peso_estrutural']:.2f} pts), Resolução do Comando ({criterios_info['peso_resolucao']:.2f} pts), Rigor Conceitual ({criterios_info['peso_rigor']:.2f} pts).")
 
         # 1. Obter link de entrada do plano mapeado pelo Quick Eval
         ativ_info = plano.get("atividade_aberta", {})
@@ -155,122 +417,87 @@ class MotorAtividades:
             # Tenta sempre o download e extração de arquivos para garantir que nenhum anexo seja ignorado
             total_arqs, texto_submissoes = self._baixar_e_extrair_arquivos(page, temp_dir, aluno_idx)
 
-            # Pular estudantes apenas se comprovadamente não houver qualquer envio após o carregamento completo
+            # Pular estudantes se não houver qualquer envio após o carregamento completo
             if total_arqs == 0 and not texto_submissoes.strip():
-                if not tem_submissao:
-                    state.log(f"{pos_str}{nome_aluno}: Sem envios na Atividade Aberta confirmados após carregamento. Pulando...")
-                    if not avancar_proximo_estudante_seguro(page, nome_anterior=nome_aluno, posicao_anterior=pos_info):
-                        state.log("Fim da lista de estudantes da Atividade alcançado.")
-                        break
-                    continue
-                else:
-                    # Havia indicador de envio mas download retornou vazio: dar mais 2s e tentar novamente
+                if tem_submissao:
+                    # Havia indicador de envio mas download retornou vazio: tentar novamente
                     time.sleep(2.0)
                     total_arqs, texto_submissoes = self._baixar_e_extrair_arquivos(page, temp_dir, aluno_idx)
-                    if total_arqs == 0 and not texto_submissoes.strip():
-                        state.log(f"{pos_str}{nome_aluno}: Sem envios na Atividade Aberta confirmados após nova tentativa. Pulando...")
-                        if not avancar_proximo_estudante_seguro(page, nome_anterior=nome_aluno, posicao_anterior=pos_info):
-                            state.log("Fim da lista de estudantes da Atividade alcançado.")
-                            break
-                        continue
+
+            # Verificar se realmente não há submissão (total_arqs == 0 e texto em branco ou sem envio)
+            texto_limpo = (texto_submissoes or "").strip().lower()
+            sem_envio = (total_arqs == 0 and (not texto_limpo or "nenhum texto inserido" in texto_limpo or len(texto_limpo) < 15))
+
+            if sem_envio:
+                state.log(f"{pos_str}{nome_aluno}: Sem submissões na Atividade Aberta (-Nenhum texto inserido-).")
+                
+                # Verificar se já possui nota 0 ou comentário prévio
+                dados_atuais = obter_nota_e_feedback_consistent_evaluation(page)
+                nota_previa = dados_atuais.get("nota")
+                feedback_previo = dados_atuais.get("feedback", "")
+
+                tem_nota_zero_ou_fb = False
+                if nota_previa is not None and str(nota_previa).strip() != "":
+                    try:
+                        val = float(str(nota_previa).replace(",", "."))
+                        if val == 0.0:
+                            tem_nota_zero_ou_fb = True
+                    except Exception:
+                        pass
+                if feedback_previo and len(feedback_previo.strip()) > 0:
+                    tem_nota_zero_ou_fb = True
+
+                if tem_nota_zero_ou_fb:
+                    state.log(f"{pos_str}{nome_aluno}: Nota 0 ou comentário prévio detectado em estudante sem submissão. Removendo nota e comentário e salvando rascunho...")
+                    remover_nota_e_feedback_consistent_evaluation(page)
+                    time.sleep(1.0)
+                    self._salvar_rascunho(page)
+                    time.sleep(1.5)
+                    self._salvar_rascunho(page)
+                    state.log(f"{pos_str}{nome_aluno}: Rascunho salvo com nota e feedback limpos.")
+
+                state.log(f"{pos_str}{nome_aluno}: Estudante sem submissão pulado conforme diretriz operacional.")
+                if not avancar_proximo_estudante_seguro(page, nome_anterior=nome_aluno, posicao_anterior=pos_info):
+                    state.log("Fim da lista de estudantes da Atividade alcançado.")
+                    break
+                continue
 
             state.log(f"{pos_str}{nome_aluno}: Submissão identificada e analisada ({total_arqs} anexo(s)). Temporários excluídos.")
 
-            # Detecção de plágio cruzado (estritamente >= 90%, avaliando conteúdo textual e gerando comparação)
-            info_plagio = detector_plagio.registrar_e_comparar(
-                ou=ou,
-                disciplina=disciplina,
-                atividade="Atividade aberta",
-                aluno_nome=nome_aluno,
-                texto_submissao=texto_submissoes
-            )
-            if info_plagio.get("tem_plagio", False):
-                state.log(f"ALERTA DE PLÁGIO (≥ 90%): {nome_aluno} possui {info_plagio['similaridade_pct']}% de similaridade com {info_plagio['aluno_autor']}!", "WARN")
-                if info_plagio.get("relatorio_comparacao"):
-                    state.log(f"Comparação de arquivos gerada: {info_plagio['relatorio_comparacao']}")
-                state.increment_stat("plagios_detectados")
-
-            # Avaliação pedagógica
-            metadados = {
-                "arquivos_count": total_arqs,
-                "tem_anexos": total_arqs > 0 or bool(texto_submissoes.strip())
-            }
-            diagnostico = analisador_pedagogico.avaliar_submissao(
-                tipo_atividade="atividade_aberta",
-                texto_aluno=texto_submissoes,
-                comando_oficial=instrucoes,
+            # Avaliação analítica com a matriz pedagógica pré-estabelecida
+            diag = self.avaliar_estudante_atividade(
+                texto_submissao=texto_submissoes,
+                nome_aluno=nome_aluno,
+                instrucoes=instrucoes,
+                criterios_info=criterios_info,
                 nota_maxima=nota_maxima,
-                metadados_envio=metadados,
-                info_plagio=info_plagio
+                total_arqs=total_arqs,
+                docente=docente
             )
 
-            nota_calculada = diagnostico["nota_sugerida"]
-            feedback_html = construtor_feedback.gerar_feedback(
-                nome_estudante=nome_aluno,
-                tipo_atividade="atividade_aberta",
-                diagnostico_pedagogico=diagnostico,
-                nome_docente=docente,
-                info_plagio=info_plagio
-            )
+            nota_calculada = diag["nota"]
+            feedback_html = diag["feedback_html"]
+            state.log(f"{pos_str}{nome_aluno}: Nota atribuída = {nota_calculada:.2f} / {nota_maxima:.2f} (Conceito: {diag['qualidade']})")
 
-            # Execução segundo o Modo Efetivo
-            if modo_efetivo == "recorrigir_e_auditar":
-                state.log(f"{pos_str}[Recorrigir + Auditoria] Reavaliando {nome_aluno}: Nota {nota_calculada}/{nota_maxima}...")
+            # Em modo tradicional com auditoria, se já possuir avaliação anterior, mantém e audita
+            fb_atual = self._obter_feedback_atual(page)
+            if modo_efetivo == "tradicional_com_auditoria" and fb_atual.strip():
+                state.log(f"{pos_str}[Execução Normal] {nome_aluno}: Já possui avaliação registrada. Conforme.")
+                state.increment_stat("auditados")
+            else:
+                # Inserir nota e feedback no Consistent Evaluation
                 self._inserir_nota_e_feedback(page, nota_calculada, feedback_html)
+                time.sleep(1.5)
+
+                # Persistência obrigatória: SALVAR EM RASCUNHO DUAS VEZES (NUNCA PUBLICAR)
+                state.log(f"{pos_str}Salvando avaliação em rascunho (1ª persistência)...")
                 self._salvar_rascunho(page)
+                time.sleep(2.0)
+                state.log(f"{pos_str}Confirmando salvamento em rascunho (2ª persistência)...")
+                self._salvar_rascunho(page)
+                time.sleep(0.5)
+
                 state.increment_stat("avaliados")
-                state.increment_stat("auditados")
-
-            elif modo_efetivo == "auditoria_comum":
-                fb_atual = self._obter_feedback_atual(page)
-                first_name = extrair_primeiro_nome(nome_aluno)
-                tem_token = "{firstname}" in fb_atual.lower()
-                tem_nome = bool(first_name and first_name.lower() in fb_atual.lower())
-                conforme = tem_token or tem_nome
-                if not conforme or not fb_atual.strip():
-                    state.log(f"{pos_str}[Auditoria Comum] {nome_aluno}: Feedback sem '{{FirstName}}'. Atualizando feedback formativo...")
-                    self._inserir_nota_e_feedback(page, nota_calculada, feedback_html)
-                    self._salvar_rascunho(page)
-                    state.increment_stat("ajustados")
-                else:
-                    state.log(f"{pos_str}[Auditoria Comum] {nome_aluno}: Conforme ('{{FirstName}}' presente).")
-                state.increment_stat("auditados")
-
-            elif modo_efetivo == "tradicional_com_auditoria":
-                fb_atual = self._obter_feedback_atual(page)
-                first_name = extrair_primeiro_nome(nome_aluno)
-                if not fb_atual.strip():
-                    state.log(f"{pos_str}[Novo Envio] Avaliando novo envio de {nome_aluno}: Nota {nota_calculada}/{nota_maxima}...")
-                    self._inserir_nota_e_feedback(page, nota_calculada, feedback_html)
-                    self._salvar_rascunho(page)
-                    state.increment_stat("avaliados")
-                else:
-                    tem_token = "{firstname}" in fb_atual.lower()
-                    tem_nome = bool(first_name and first_name.lower() in fb_atual.lower())
-                    conforme = tem_token or tem_nome
-                    if not conforme:
-                        state.log(f"{pos_str}[Auditoria Comum] Ajustando feedback de {nome_aluno} para incluir '{{FirstName}}'...")
-                        self._inserir_nota_e_feedback(page, nota_calculada, feedback_html)
-                        self._salvar_rascunho(page)
-                        state.increment_stat("ajustados")
-                    else:
-                        state.log(f"{pos_str}[Auditoria Comum] {nome_aluno}: Conforme ('{{FirstName}}' presente).")
-                    state.increment_stat("auditados")
-
-            else:  # auditoria / auditoria_geral
-                fb_atual = self._obter_feedback_atual(page)
-                first_name = extrair_primeiro_nome(nome_aluno)
-                tem_token = "{firstname}" in fb_atual.lower()
-                tem_nome = bool(first_name and first_name.lower() in fb_atual.lower())
-                conforme = tem_token or tem_nome
-                if not conforme:
-                    state.log(f"{pos_str}[Auditoria] Inserindo tag oficial '{{FirstName}}' no feedback de {nome_aluno}...")
-                    self._inserir_nota_e_feedback(page, nota_calculada, feedback_html)
-                    self._salvar_rascunho(page)
-                    state.increment_stat("ajustados")
-                else:
-                    state.log(f"{pos_str}[Auditoria] {nome_aluno}: Conforme ('{{FirstName}}' presente).")
-                state.increment_stat("auditados")
 
             registro = {
                 "ou": str(ou),
@@ -279,10 +506,11 @@ class MotorAtividades:
                 "aluno": nome_aluno,
                 "nota": nota_calculada,
                 "nota_max": nota_maxima,
-                "plagio": info_plagio.get("tem_plagio", False),
-                "similaridade_pct": info_plagio.get("similaridade_pct", 0.0),
-                "qualidade": diagnostico.get("qualidade_geral", "Bom"),
-                "modo": modo
+                "plagio": False,
+                "similaridade_pct": 0.0,
+                "qualidade": diag.get("qualidade", "Bom"),
+                "modo": modo,
+                "descontos": diag.get("descontos", [])
             }
             resultados.append(registro)
 

@@ -7,47 +7,26 @@ from playwright.sync_api import sync_playwright
 
 from config import BASE_AVA_URL, NAV_TIMEOUT
 from core.browser_session import obter_caminho_auth
-
-def extrair_cards_turmas(page) -> List[Dict[str, str]]:
-    cards = page.locator("d2l-enrollment-card, d2l-card, a.d2l-card-container, [role='tabpanel'] a[href*='/d2l/home/']")
-    count = cards.count()
-    turmas = []
-    seen = set()
-    descartar = ['recuperação', 'recuperacao', 'comunidade', 'tutoria', 'coordenação', 'coordenacao', 'orientações', 'orientacoes']
-    
-    for i in range(count):
-        el = cards.nth(i)
-        txt = el.inner_text().strip()
-        href = el.get_attribute("href") or ""
-        if not href:
-            sub = el.locator("a[href*='/d2l/home/']").first
-            if sub.count() > 0:
-                href = sub.get_attribute("href") or ""
-        
-        m = re.search(r'/d2l/home/(\d+)', href)
-        if m:
-            ou = m.group(1)
-            if ou not in seen and ou not in ['6606', '6682', '6803', '50227']:
-                linhas = [l.strip() for l in txt.split('\n') if l.strip()]
-                nome = linhas[0] if linhas else f"Disciplina {ou}"
-                if not any(d in nome.lower() for d in descartar):
-                    seen.add(ou)
-                    turmas.append({"ou": ou, "name": nome})
-    return turmas
+from engine_state import state
 
 def descobrir_todas_abas_e_cursos(username: str, password: str, headless: bool = True) -> Dict[str, Any]:
     """
-    Descobre todas as abas e catálogo de disciplinas disponíveis no AVA.
+    Descobre todas as abas e catálogo de disciplinas disponíveis no AVA:
+    - Mapeia todos os períodos letivos no formato AAAA/T (ex.: 2026/1, 2026/2, 2026/3, etc.).
+    - Mapeia a aba 'Fixado', trazendo estritamente as turmas que possuem pin ativo.
+    - Suporta setas de navegação do layout de abas e acionamento de 'Exibir Todos os Cursos'.
+    - Rola o painel para garantir o carregamento exaustivo de todas as disciplinas da aba.
+    - Consolida todas as turmas em 'Todas as Disciplinas'.
     """
     auth_file = obter_caminho_auth(username)
-    resultado = {"abas": ["Fixado", "2026/3", "2026/2", "2026/1", "Todas as Disciplinas"], "disciplinas_por_aba": {}}
+    resultado = {"abas": ["Fixado", "Todas as Disciplinas"], "disciplinas_por_aba": {}}
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=headless,
             args=["--no-sandbox", "--disable-dev-shm-usage"]
         )
-        ctx_kwargs = {"viewport": {"width": 1200, "height": 800}}
+        ctx_kwargs = {"viewport": {"width": 1280, "height": 900}}
         if auth_file.exists():
             ctx_kwargs["storage_state"] = str(auth_file)
             
@@ -57,10 +36,11 @@ def descobrir_todas_abas_e_cursos(username: str, password: str, headless: bool =
 
         try:
             page.goto(f"{BASE_AVA_URL}/d2l/home", wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
-            time.sleep(2)
+            time.sleep(3)
 
+            # Verificar se redirecionou para tela de login
             if "login" in page.url.lower():
-                # Realizar login se necessário
+                state.log("Sessão expirada ou não autenticada. Realizando login...")
                 acesso_direto = page.locator("text='Acesso Direto'").first
                 if acesso_direto.count() > 0:
                     acesso_direto.click()
@@ -70,54 +50,205 @@ def descobrir_todas_abas_e_cursos(username: str, password: str, headless: bool =
                 pass_input.fill(password)
                 page.locator("button[type='submit'], button:has-text('Fazer login')").first.click()
                 page.wait_for_load_state("domcontentloaded", timeout=NAV_TIMEOUT)
-                time.sleep(3)
+                time.sleep(4)
                 context.storage_state(path=str(auth_file))
 
-            # Mapear abas disponíveis
-            tab_locators = page.locator("d2l-tab, [role='tab']")
-            total_tabs = tab_locators.count()
-            abas_encontradas = []
+            # Executar descoberta avançada atravessando shadow DOMs
+            dados_descoberta = page.evaluate(r"""async () => {
+                function querySelectorAllDeep(selector, root = document) {
+                    let results = Array.from(root.querySelectorAll(selector));
+                    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+                    let node;
+                    while (node = walker.nextNode()) {
+                        if (node.shadowRoot) {
+                            results = results.concat(querySelectorAllDeep(selector, node.shadowRoot));
+                        }
+                    }
+                    return results;
+                }
 
-            for i in range(total_tabs):
-                nome_aba = tab_locators.nth(i).inner_text().strip()
-                if nome_aba and nome_aba not in abas_encontradas:
-                    abas_encontradas.append(nome_aba)
+                // 1. Tentar abrir o diálogo 'Exibir Todos os Cursos' para visão completa de todas as abas e turmas
+                const viewAllLinks = querySelectorAllDeep('#viewAllCourses, d2l-link');
+                const viewAllBtn = viewAllLinks.find(l => {
+                    const txt = (l.innerText || l.getAttribute('text') || '').toLowerCase();
+                    return txt.includes('exibir todo') || txt.includes('exibir toda') || l.id === 'viewAllCourses';
+                });
 
-            if not abas_encontradas:
-                abas_encontradas = ["Fixado", "2026/3", "2026/2", "2026/1"]
+                let usandoDialog = false;
+                let rootScope = document;
 
-            disciplinas_por_aba = {}
-            for aba in abas_encontradas:
-                try:
-                    tab_target = page.locator(f"d2l-tab:has-text('{aba}'), [role='tab']:has-text('{aba}')").first
-                    if tab_target.count() > 0:
-                        tab_target.click(force=True, timeout=4000)
-                        time.sleep(2)
-                    cursos = extrair_cards_turmas(page)
-                    disciplinas_por_aba[aba] = cursos
-                except Exception:
-                    disciplinas_por_aba[aba] = []
+                if (viewAllBtn) {
+                    viewAllBtn.click();
+                    await new Promise(r => setTimeout(r, 3000));
+                    const openedDialog = querySelectorAllDeep('d2l-dialog-fullscreen').find(d => d.hasAttribute('opened'));
+                    if (openedDialog) {
+                        usandoDialog = true;
+                        rootScope = openedDialog;
+                    }
+                }
 
-            # Montar a aba consolidada "Todas as Disciplinas"
-            todas = []
-            seen_all = set()
-            for lista in disciplinas_por_aba.values():
-                for c in lista:
-                    if c["ou"] not in seen_all:
-                        seen_all.add(c["ou"])
-                        todas.append(c)
+                // 2. Mapear todas as abas disponíveis
+                const allTabs = querySelectorAllDeep('d2l-tab', rootScope);
+                const abasInfo = [];
 
-            disciplinas_por_aba["Todas as Disciplinas"] = todas
-            if "Todas as Disciplinas" not in abas_encontradas:
-                abas_encontradas.append("Todas as Disciplinas")
+                for (const t of allTabs) {
+                    const title = (t.getAttribute('title') || t.innerText || (t.shadowRoot ? t.shadowRoot.textContent : '') || '').trim();
+                    const id = t.id || '';
+                    const controlsId = t.getAttribute('aria-controls') || '';
+                    if (title) {
+                        abasInfo.push({ id, title, controlsId, element: t });
+                    }
+                }
 
-            resultado["abas"] = abas_encontradas
-            resultado["disciplinas_por_aba"] = disciplinas_por_aba
+                // Filtrar abas de interesse:
+                // - "Fixado" (id inclui pinned ou title inclui Fixad)
+                // - Períodos no formato \d{4}/\d+ (ex: 2026/1, 2026/2, 2026/3, etc.)
+                // - "Todos" (id inclui search-my-enrollments ou title inclui Todos)
+                const periodosEncontrados = [];
+                let tabFixado = null;
+                let tabTodos = null;
+
+                const regexPeriodo = /^\d{4}\/\d+$/;
+
+                for (const aba of abasInfo) {
+                    const t = aba.title;
+                    if (regexPeriodo.test(t)) {
+                        periodosEncontrados.push(aba);
+                    } else if (t.toLowerCase().includes('fixad') || aba.id.includes('pinned')) {
+                        tabFixado = aba;
+                    } else if (t.toLowerCase() === 'todos' || aba.id.includes('search-my-enrollments')) {
+                        tabTodos = aba;
+                    }
+                }
+
+                // Ordenar períodos cronologicamente decrescente (ex: 2026/3, 2026/2, 2026/1, 2025/4...)
+                periodosEncontrados.sort((a, b) => {
+                    const [anoA, triA] = a.title.split('/').map(Number);
+                    const [anoB, triB] = b.title.split('/').map(Number);
+                    if (anoB !== anoA) return anoB - anoA;
+                    return triB - triA;
+                });
+
+                // Lista de abas a serem extraídas
+                const abasProcessar = [];
+                if (tabFixado) abasProcessar.push({ nome: 'Fixado', aba: tabFixado, isFixado: true });
+                for (const p of periodosEncontrados) {
+                    abasProcessar.push({ nome: p.title, aba: p, isFixado: false });
+                }
+                if (tabTodos) abasProcessar.push({ nome: 'Todos', aba: tabTodos, isFixado: false, isTodos: true });
+
+                const descartar = ['recuperação', 'recuperacao', 'comunidade', 'tutoria', 'coordenação', 'coordenacao', 'orientações', 'orientacoes'];
+                const ousIgnorar = ['6606', '6682', '6803', '50227'];
+
+                const disciplinasPorAba = {};
+                const todosCursosConsolidados = [];
+                const seenGeral = new Set();
+
+                // 3. Iterar por cada aba e extrair disciplinas completas
+                for (const item of abasProcessar) {
+                    const tabEl = item.aba.element;
+                    
+                    if (tabEl) {
+                        // Se não estiver usando dialog, acionar seta para navegar nas abas se necessário
+                        if (!usandoDialog) {
+                            const d2lTabs = document.querySelector('d2l-tabs');
+                            if (d2lTabs && d2lTabs.shadowRoot) {
+                                const nextBtn = d2lTabs.shadowRoot.querySelector('button.d2l-tabs-scroll-button[title*="frente"]');
+                                if (nextBtn && !nextBtn.disabled) nextBtn.click();
+                            }
+                        }
+
+                        tabEl.click();
+                        await new Promise(r => setTimeout(r, 1800));
+                    }
+
+                    // Encontrar o painel de cards correspondente
+                    const panelId = item.aba.controlsId;
+                    const panel = panelId ? (document.getElementById(panelId) || querySelectorAllDeep('#' + panelId, rootScope)[0]) : null;
+
+                    // Rolar painel para disparar lazy loading e carregar todas as disciplinas da aba
+                    if (panel) {
+                        panel.scrollTop = panel.scrollHeight;
+                        await new Promise(r => setTimeout(r, 900));
+                    } else if (rootScope) {
+                        rootScope.scrollTop = rootScope.scrollHeight;
+                        await new Promise(r => setTimeout(r, 900));
+                    }
+
+                    const containerBusca = panel || rootScope;
+                    const cards = querySelectorAllDeep('d2l-card, d2l-enrollment-card', containerBusca);
+                    const turmasAba = [];
+                    const seenAba = new Set();
+
+                    for (const c of cards) {
+                        const textAttr = c.getAttribute('text') || '';
+                        const innerText = c.innerText || '';
+                        const txt = (textAttr || innerText).trim();
+                        const linhas = txt.split('\n').map(l => l.trim()).filter(Boolean);
+                        const nome = linhas.length > 0 ? linhas[0] : '';
+
+                        let href = c.getAttribute('href') || '';
+                        if (!href) {
+                            const a = c.querySelector('a[href*="/d2l/home/"]') || (c.shadowRoot ? c.shadowRoot.querySelector('a[href*="/d2l/home/"]') : null);
+                            if (a) href = a.getAttribute('href') || a.href || '';
+                        }
+
+                        const m = href.match(/\/d2l\/home\/(\d+)/);
+                        if (!m) continue;
+                        const ou = m[1];
+
+                        if (ousIgnorar.includes(ou) || seenAba.has(ou)) continue;
+
+                        // Descarte de salas não acadêmicas
+                        if (descartar.some(d => nome.toLowerCase().includes(d))) continue;
+
+                        // Filtro estrito na aba Fixado: apenas cards realmente fixados
+                        if (item.isFixado) {
+                            let isPinned = false;
+                            if (c.hasAttribute('pinned') && c.getAttribute('pinned') !== 'false') isPinned = true;
+                            const pinButtons = querySelectorAllDeep('d2l-button-icon, [aria-label*="fixar"], [aria-label*="Fixar"], [title*="fixar"], [title*="Fixar"]', c);
+                            for (const pb of pinButtons) {
+                                const l = (pb.getAttribute('aria-label') || pb.getAttribute('text') || pb.getAttribute('icon') || '').toLowerCase();
+                                if (l.includes('desafixar') || l.includes('unpin') || l.includes('remover dos fixados') || l.includes('pin-filled')) {
+                                    isPinned = true;
+                                    break;
+                                }
+                            }
+                            if (!isPinned) continue;
+                        }
+
+                        seenAba.add(ou);
+                        const itemCurso = { ou, name: nome || `Disciplina ${ou}` };
+                        turmasAba.push(itemCurso);
+
+                        if (!seenGeral.has(ou)) {
+                            seenGeral.add(ou);
+                            todosCursosConsolidados.push(itemCurso);
+                        }
+                    }
+
+                    disciplinasPorAba[item.nome] = turmasAba;
+                }
+
+                // Montar lista de abas para o frontend
+                const nomesAbas = abasProcessar.map(a => a.nome === 'Todos' ? 'Todas as Disciplinas' : a.nome);
+                disciplinasPorAba['Todas as Disciplinas'] = todosCursosConsolidados;
+                if (!nomesAbas.includes('Todas as Disciplinas')) {
+                    nomesAbas.push('Todas as Disciplinas');
+                }
+
+                return {
+                    abas: Array.from(new Set(nomesAbas)),
+                    disciplinas_por_aba: disciplinasPorAba
+                };
+            }""")
+
+            if dados_descoberta and "abas" in dados_descoberta:
+                resultado = dados_descoberta
 
         except Exception as e:
-            print(f"Erro na descoberta de cursos: {e}")
+            state.log(f"Erro na descoberta de cursos: {e}", "ERROR")
         finally:
             browser.close()
 
     return resultado
-

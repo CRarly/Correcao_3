@@ -200,7 +200,7 @@ def disparar_clique_proximo(page: Page) -> Dict[str, Any]:
                     const icon = (el.getAttribute('icon') || '').toLowerCase();
                     const tag = el.tagName.toLowerCase();
                     const isBtn = tag === 'button' || tag.includes('button') || el.getAttribute('role') === 'button';
-                    
+
                     if ((isBtn || icon.includes('chevron')) && (aria.includes('próximo') || aria.includes('proximo') || aria.includes('next') || aria.includes('avançar') || icon.includes('chevron-right') || icon.includes('right'))) {
                         const disabled = el.disabled || el.getAttribute('aria-disabled') === 'true' || el.classList.contains('disabled');
                         if (!disabled) {
@@ -268,10 +268,10 @@ def verificar_botao_proximo_desabilitado(page: Page) -> bool:
                 const tag = el.tagName.toLowerCase();
                 const aria = (el.getAttribute('aria-label') || '').toLowerCase();
                 const icon = (el.getAttribute('icon') || '').toLowerCase();
-                return tag.includes('iterator-next') || 
-                       aria.includes('próximo') || 
-                       aria.includes('proximo') || 
-                       aria.includes('next') || 
+                return tag.includes('iterator-next') ||
+                       aria.includes('próximo') ||
+                       aria.includes('proximo') ||
+                       aria.includes('next') ||
                        icon.includes('chevron-right');
             });
             for (let el of nextEls) {
@@ -367,4 +367,3 @@ def avancar_proximo_estudante_seguro(page: Page, nome_anterior: str = "", posica
         return False
 
     return False
-

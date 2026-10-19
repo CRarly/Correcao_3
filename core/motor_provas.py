@@ -270,53 +270,26 @@ class MotorProvas:
     def _assegurar_tentativa_carregada(self, page: Page) -> bool:
         """
         Garante que a visualização esteja na tentativa ativa do estudante,
-        selecionando 'Tentativa 1' e saindo de 'Resumo da conclusão'.
+        clicando em 'Tentativa 1' ou alternando de 'Resumo da conclusão'.
         """
         try:
-            trocou = page.evaluate(r"""() => {
-                function getAll(root) {
-                    let res = [];
-                    const w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, null, false);
-                    while(w.nextNode()) {
-                        res.push(w.currentNode);
-                        if (w.currentNode.shadowRoot) res = res.concat(getAll(w.currentNode.shadowRoot));
+            clicado = page.evaluate(r"""() => {
+                function getAllElements(root) {
+                    let list = [];
+                    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, null, false);
+                    while (walker.nextNode()) {
+                        const el = walker.currentNode;
+                        list.push(el);
+                        if (el.shadowRoot) list = list.concat(getAllElements(el.shadowRoot));
                     }
-                    return res;
+                    return list;
                 }
-                const all = getAll(document.body);
-                
-                // 1. Localizar o elemento <select> de tentativas
-                const selects = all.filter(el => {
-                    if (el.tagName.toLowerCase() !== 'select') return false;
-                    const aria = (el.getAttribute('aria-label') || '').toLowerCase();
-                    const hasTentativa = Array.from(el.options || []).some(o => (o.text || '').toLowerCase().includes('tentativa') || o.value === 'completion-summary');
-                    return aria.includes('tentativa') || aria.includes('attempt') || hasTentativa;
-                });
-
-                for (let sel of selects) {
-                    const val = sel.value || '';
-                    const curText = sel.options && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text.toLowerCase() : '';
-                    if (val === 'completion-summary' || curText.includes('resumo') || curText.includes('summary')) {
-                        for (let i = 0; i < sel.options.length; i++) {
-                            const opt = sel.options[i];
-                            const optText = (opt.text || '').toLowerCase();
-                            if (optText.includes('tentativa 1') || (opt.value && opt.value !== 'completion-summary')) {
-                                sel.selectedIndex = i;
-                                sel.value = opt.value;
-                                sel.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
-                                sel.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
-                                return true;
-                            }
-                        }
-                    }
-                }
-
-                // 2. Fallback por clique
+                const all = getAllElements(document.body);
                 for (let el of all) {
-                    const txt = (el.innerText || el.textContent || '').trim().toLowerCase();
-                    if (txt === 'tentativa 1') {
+                    const txt = (el.innerText || el.textContent || '').trim();
+                    if (txt === 'Tentativa 1' || txt.startsWith('Tentativa 1')) {
                         const target = el.closest ? (el.closest('a') || el.closest('button') || el) : el;
-                        if (typeof target.click === 'function' && target.tagName.toLowerCase() !== 'option') {
+                        if (typeof target.click === 'function') {
                             target.click();
                             return true;
                         }
@@ -324,10 +297,17 @@ class MotorProvas:
                 }
                 return false;
             }""")
-            if trocou:
-                state.log("Tentativa 1 selecionada no dropdown (saindo de Resumo da conclusão)...")
-                time.sleep(4.5)
+            if clicado:
+                time.sleep(4.0)
                 return True
+
+            sel = page.locator("select[aria-label*='Tentativas']").first
+            if sel.count() > 0:
+                val = sel.input_value()
+                if val == "completion-summary":
+                    sel.select_option(index=0)
+                    time.sleep(3.0)
+                    return True
         except Exception:
             pass
         return False
@@ -374,7 +354,72 @@ class MotorProvas:
             pass
         return None
 
+    def _extrair_enunciado_discursiva(self, page: Page) -> str:
+        """
+        Extrai o texto completo do comando/enunciado da questão discursiva (Pergunta 8)
+        através dos blocos renderizados no container da pergunta, penetrando shadow roots.
+        """
+        try:
+            texto = page.evaluate(r"""() => {
+                function getAll(root) {
+                    let res = [];
+                    const w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, null, false);
+                    while (w.nextNode()) {
+                        const el = w.currentNode;
+                        res.push(el);
+                        if (el.shadowRoot) res = res.concat(getAll(el.shadowRoot));
+                    }
+                    return res;
+                }
+                const all = getAll(document.body);
+                const wrapQuestion = all.filter(el => (el.className || '').toString().includes('d2l-questions-question-wrapper'));
+                if (wrapQuestion.length > 0) {
+                    const targetWrap = wrapQuestion[wrapQuestion.length - 1];
+                    const rendered = getAll(targetWrap).filter(el => (el.className || '').toString().includes('d2l-html-block-rendered'));
+                    if (rendered.length > 0) {
+                        for (let r of rendered) {
+                            const t = (r.innerText || '').trim();
+                            if (t.length > 0) return t;
+                        }
+                    }
+                    const htmlBlocks = getAll(targetWrap).filter(el => el.tagName.toLowerCase() === 'd2l-html-block');
+                    for (let hb of htmlBlocks) {
+                        const t = (hb.html || hb.innerText || '').trim();
+                        if (t) {
+                            const div = document.createElement('div');
+                            div.innerHTML = t;
+                            const resTxt = (div.innerText || '').trim();
+                            if (resTxt.length > 0) return resTxt;
+                        }
+                    }
+                }
+                // Fallback: buscar d2l-html-block-rendered logo após a Pergunta 8
+                let q8Idx = -1;
+                for (let i = 0; i < all.length; i++) {
+                    if ((all[i].innerText || '').trim() === 'Pergunta 8') {
+                        q8Idx = i;
+                        break;
+                    }
+                }
+                if (q8Idx !== -1) {
+                    for (let i = q8Idx; i < Math.min(all.length, q8Idx + 30); i++) {
+                        const el = all[i];
+                        if ((el.className || '').toString().includes('d2l-html-block-rendered') && (el.innerText || '').length > 50) {
+                            return el.innerText.trim();
+                        }
+                    }
+                }
+                return '';
+            }""")
+            return (texto or "").strip()
+        except Exception:
+            return ""
+
     def _extrair_resposta_discursiva(self, page: Page) -> str:
+        """
+        Extrai a resposta submetida pelo estudante na questão discursiva a partir
+        do container d2l-questions-written-response-question-response, penetrando shadow roots.
+        """
         try:
             texto = page.evaluate(r"""() => {
                 function getAll(root) {
@@ -389,76 +434,52 @@ class MotorProvas:
                 }
                 const all = getAll(document.body);
 
-                // 1. Localizar elemento de referência da Questão Discursiva (Pergunta 8 ou código EAD)
-                let refQ8 = null;
+                // 1. Container padrão de resposta escrita
+                const wrapResponse = all.filter(el => (el.className || '').toString().includes('d2l-questions-written-response-question-response'));
+                if (wrapResponse.length > 0) {
+                    const targetResp = wrapResponse[wrapResponse.length - 1];
+                    const renderedResp = getAll(targetResp).filter(el => (el.className || '').toString().includes('d2l-html-block-rendered'));
+                    for (let r of renderedResp) {
+                        let resp = (r.innerText || '').trim();
+                        resp = resp.replace(/^\d+\s+palavras\s*/i, '').replace(/Contagem de Palavras.*$/is, '').trim();
+                        if (resp.length > 0) return resp;
+                    }
+
+                    const htmlBlocks = getAll(targetResp).filter(el => el.tagName.toLowerCase() === 'd2l-html-block');
+                    for (let hb of htmlBlocks) {
+                        const t = (hb.html || hb.innerText || '').trim();
+                        if (t) {
+                            const div = document.createElement('div');
+                            div.innerHTML = t;
+                            let resp = (div.innerText || '').trim();
+                            resp = resp.replace(/^\d+\s+palavras\s*/i, '').replace(/Contagem de Palavras.*$/is, '').trim();
+                            if (resp.length > 0) return resp;
+                        }
+                    }
+                }
+
+                // 2. Fallback: procurar elemento de texto imediatamente antes do contador de palavras
                 for (let el of all) {
-                    const txt = (el.innerText || '').trim();
-                    if (txt === 'Pergunta 8' || (txt.includes('Pergunta 8') && el.tagName === 'H4') || txt.includes('Final de Questão dissertativa')) {
-                        refQ8 = el;
-                    }
-                }
-
-                // Subir até o container da questão discursiva
-                let containerQ8 = refQ8;
-                for (let i = 0; i < 7; i++) {
-                    if (containerQ8 && containerQ8.parentElement) {
-                        containerQ8 = containerQ8.parentElement;
-                        const cls = (containerQ8.className || '').toString();
-                        if (cls.includes('question-wrapper') || cls.includes('quiz-question')) break;
-                    }
-                }
-
-                const subElements = containerQ8 ? getAll(containerQ8) : all;
-
-                function isFeedbackOrPrompt(t) {
-                    if (!t) return true;
-                    const s = t.toLowerCase();
-                    return s.includes('sua resposta para a questão') ||
-                           s.includes('sua resposta para a questao') ||
-                           s.includes('análise detalhada dos critérios') ||
-                           s.includes('analise detalhada dos criterios') ||
-                           s.includes('justificativa do desconto') ||
-                           s.includes('padrão de resposta') ||
-                           s.includes('padrao de resposta') ||
-                           s.includes('texto-motivador') ||
-                           s.includes('comando da') ||
-                           s.includes('prof. avaliador') ||
-                           s.startsWith('ead_');
-                }
-
-                // 2. Procurar elemento de texto imediatamente antes da contagem de palavras (word-count)
-                for (let el of subElements) {
                     const cls = (el.className || '').toString();
                     const txt = (el.innerText || '').trim();
                     if (cls.includes('word-count') || (txt.includes('palavras') && /^\d+\s+palavras/i.test(txt))) {
                         let prev = el.previousElementSibling;
                         while (prev) {
                             const tag = prev.tagName.toLowerCase();
-                            const pTxt = (prev.innerText || '').trim();
-                            if (tag !== 'd2l-offscreen' && pTxt !== 'Questão Discursiva' && pTxt.length > 5 && !isFeedbackOrPrompt(pTxt)) {
+                            let pTxt = (prev.innerText || '').trim();
+                            pTxt = pTxt.replace(/^\d+\s+palavras\s*/i, '').replace(/Contagem de Palavras.*$/is, '').trim();
+                            if (tag !== 'd2l-offscreen' && pTxt !== 'Questão Discursiva' && pTxt.length > 5 && !pTxt.startsWith('EAD_') && !pTxt.includes('Texto-Motivador') && !pTxt.includes('Comando da')) {
                                 return pTxt;
                             }
                             prev = prev.previousElementSibling;
                         }
                     }
                 }
-
-                // 3. Fallback: procurar os blocos renderizados dentro do container da questão discursiva
-                const rendered = subElements.filter(el => (el.className || '').toString().includes('d2l-html-block-rendered'));
-                if (rendered.length >= 2) {
-                    // O primeiro é o enunciado e o segundo é a resposta do aluno
-                    const resp = (rendered[1].innerText || '').trim();
-                    if (resp.length > 5 && !isFeedbackOrPrompt(resp)) {
-                        return resp;
-                    }
-                }
                 return '';
             }""")
-            if texto and texto.strip():
-                return texto.strip()
+            return (texto or "").strip()
         except Exception:
-            pass
-        return ""
+            return ""
 
     def _obter_feedback_questao(self, page: Page) -> str:
         try:
@@ -487,64 +508,91 @@ class MotorProvas:
         return ""
 
     def _inserir_nota_e_feedback_questao(self, page: Page, nota: float, feedback_html: str, nota_max: float = 2.0):
+        """
+        Insere a nota no campo 'Pontuação' e o parecer formativo completo no campo 'Feedback'
+        da questão discursiva (abaixo da nota), acionando o ciclo de vida oficial do componente D2L
+        para assegurar a persistência dos dados no banco do Brightspace ao salvar rascunho.
+        """
         try:
             nota_str = f"{nota:.2f}".replace(".", ",").rstrip("0").rstrip(",")
             if not nota_str:
                 nota_str = "0"
 
-            # 1. Inserir nota no input da questão discursiva
-            page.evaluate(r"""({ nota, notaMax }) => {
-                function getAll(root) {
+            res = page.evaluate(r"""(args) => {
+                const { notaVal, notaStr, fbHtml } = args;
+                function findDeepAll(root, fn) {
                     let res = [];
                     const w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, null, false);
                     while (w.nextNode()) {
                         const el = w.currentNode;
-                        res.push(el);
-                        if (el.shadowRoot) res = res.concat(getAll(el.shadowRoot));
+                        if (fn(el)) res.push(el);
+                        if (el.shadowRoot) res = res.concat(findDeepAll(el.shadowRoot, fn));
                     }
                     return res;
                 }
-                const all = getAll(document.body);
-                let inp = null;
-                for (let el of all) {
-                    const aria = (el.getAttribute('aria-label') || '').toLowerCase();
-                    if (aria.includes('pontuação da pergunta de') || aria.includes('pontuacao da pergunta de')) {
-                        inp = el;
-                    }
-                }
-                if (inp) {
-                    inp.focus();
-                    inp.value = nota;
-                    inp.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
-                    inp.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
-                }
-            }""", {"nota": nota_str, "notaMax": nota_max})
 
-            # 2. Inserir feedback no d2l-htmleditor da questão discursiva
-            page.evaluate(r"""(fbHtml) => {
-                function getAll(root) {
-                    let res = [];
-                    const w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, null, false);
-                    while (w.nextNode()) {
-                        const el = w.currentNode;
-                        res.push(el);
-                        if (el.shadowRoot) res = res.concat(getAll(el.shadowRoot));
+                // 1. Localizar componentes D2L da avaliação da questão
+                const allAR = findDeepAll(document.body, el => el.tagName.toLowerCase() === 'd2l-consistent-evaluation-quizzing-attempt-result');
+                const qAR = allAR.length > 0 ? allAR[allAR.length - 1] : null;
+
+                // 2. Atualizar nota no componente e no input nativo
+                if (qAR && typeof qAR._updateScore === 'function') {
+                    qAR._updateScore(notaVal);
+                }
+                const inputScore = qAR && qAR.shadowRoot ? qAR.shadowRoot.querySelector('input') : null;
+                if (inputScore) {
+                    inputScore.focus();
+                    inputScore.value = notaStr;
+                    inputScore.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                    inputScore.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                    inputScore.blur();
+                }
+
+                // 3. Atualizar feedback no componente da questão (abaixo da nota)
+                const ed = qAR && qAR.shadowRoot ? qAR.shadowRoot.querySelector('d2l-htmleditor') : null;
+                if (ed) {
+                    // Ativar inline editor caso esteja no modo preview
+                    if (ed.shadowRoot) {
+                        const btn = ed.shadowRoot.querySelector('button.d2l-htmleditor-inline-button') || ed.shadowRoot.querySelector('.d2l-htmleditor-inline-html-block');
+                        if (btn) btn.click();
+                        else if (typeof ed._onInlineEditClick === 'function') ed._onInlineEditClick();
                     }
-                    return res;
+
+                    // Injetar HTML no editor e nos sub-elementos
+                    ed.html = fbHtml;
+                    if (ed.shadowRoot) {
+                        const iframe = ed.shadowRoot.querySelector('iframe');
+                        if (iframe && (iframe.contentDocument || iframe.contentWindow)) {
+                            const doc = iframe.contentDocument || iframe.contentWindow.document;
+                            if (doc && doc.body) {
+                                doc.body.innerHTML = fbHtml;
+                                doc.body.dispatchEvent(new Event('input', { bubbles: true }));
+                                doc.body.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
+                        const ta = ed.shadowRoot.querySelector('textarea');
+                        if (ta) {
+                            ta.value = fbHtml;
+                            ta.dispatchEvent(new Event('input', { bubbles: true }));
+                            ta.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }
+
+                    // Notificar o componente oficial da D2L para marcar dirty e registrar no D2L store
+                    if (qAR && typeof qAR._saveOnFeedbackChange === 'function') {
+                        qAR._feedbackText = '';
+                        qAR._saveOnFeedbackChange();
+                    }
                 }
-                const all = getAll(document.body);
-                const editors = all.filter(el => el.tagName.toLowerCase() === 'd2l-htmleditor' && el.className.includes('d2l-consistent-eval-quiz-question-feedback'));
-                if (editors.length > 0) {
-                    const target = editors[editors.length - 1];
-                    target.html = fbHtml;
-                    target.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
-                    target.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
-                }
-            }""", feedback_html)
+
+                return { ok: true, scoreUpdated: !!inputScore, feedbackUpdated: !!ed };
+            }""", {"notaVal": float(nota), "notaStr": nota_str, "fbHtml": feedback_html})
 
             time.sleep(1.0)
+            return res.get("ok", False)
         except Exception as e:
             state.log(f"Aviso ao inserir nota/feedback na discursiva: {e}", "WARN")
+            return False
 
     def _salvar_rascunho_duplo(self, page: Page):
         """

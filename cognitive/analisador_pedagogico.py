@@ -27,20 +27,13 @@ class AnalisadorPedagogico:
 
         texto_limpo = (texto_aluno or "").strip()
         palavras = len(re.findall(r"\b\w+\b", texto_limpo))
-        
-        # Caso 1: Envio totalmente em branco, vazio ou "-Nenhum texto inserido-"
+
+        # Caso 1: Envio totalmente em branco ou vazio
         arquivos_count = metadados_envio.get("arquivos_count", 0)
         tem_anexos = metadados_envio.get("tem_anexos", False) or arquivos_count > 0
-        texto_lower = texto_limpo.lower()
-        is_nenhum_texto = (
-            palavras < 5
-            or "nenhum texto inserido" in texto_lower
-            or "-nenhum texto inserido-" in texto_lower
-            or "sem resposta" in texto_lower
-        )
 
         # Só considera em branco se não houver texto E não houver arquivos anexados
-        if is_nenhum_texto and not tem_anexos:
+        if palavras < 5 and not tem_anexos:
             return {
                 "nota_sugerida": 0.0,
                 "nota_maxima": nota_maxima,
@@ -50,14 +43,14 @@ class AnalisadorPedagogico:
                 "redacao": 0.0,
                 "cumprimento_regras": 0.0,
                 "pontos_fortes": [],
-                "pontos_melhoria": ["Não houve resposta apresentada para a questão discursiva (-Nenhum texto inserido-)."],
+                "pontos_melhoria": ["Ausência de conteúdo relevante ou envio em branco."],
                 "diagnostico_resumido": "Submissão sem conteúdo textual identificável."
             }
 
         # 1. Análise de Aderência Temática e Palavras-Chave do Enunciado
         tokens_comando = set(re.findall(r"\b[a-zA-ZáéíóúâêîôûãõçÁÉÍÓÚÂÊÎÔÛÃÕÇ]{4,}\b", (comando_oficial or "").lower()))
         tokens_aluno = set(re.findall(r"\b[a-zA-ZáéíóúâêîôûãõçÁÉÍÓÚÂÊÎÔÛÃÕÇ]{4,}\b", texto_limpo.lower()))
-        
+
         # Remover stopwords comuns em português para focar no vocabulário conceitual
         stopwords = {
             "para", "com", "como", "pelo", "pela", "onde", "quando", "sobre", "entre",
@@ -66,26 +59,13 @@ class AnalisadorPedagogico:
             "disciplina", "fórum", "discussão", "professor", "unidade", "conteúdo", "questão"
         }
         termos_chave_comando = tokens_comando - stopwords
-        
+
         cobertura_conceitual = 0.7  # Valor base razoável
         if termos_chave_comando:
             intersecao = tokens_aluno & termos_chave_comando
-            if len(intersecao) == 0 and not tem_anexos:
-                return {
-                    "nota_sugerida": 0.0,
-                    "nota_maxima": nota_maxima,
-                    "qualidade_geral": "Insuficiente",
-                    "aderencia_tema": 0.0,
-                    "fundamentacao": 0.0,
-                    "redacao": 0.0,
-                    "cumprimento_regras": 0.0,
-                    "pontos_fortes": [],
-                    "pontos_melhoria": ["A resposta apresentada não correspondeu com a proposta da questão solicitada no enunciado."],
-                    "diagnostico_resumido": "Fuga ao tema: nenhum conceito do enunciado abordado na resposta."
-                }
             meta_termos = max(2, min(len(termos_chave_comando) * 0.4, 6))
             razao_cobertura = len(intersecao) / meta_termos
-            cobertura_conceitual = min(1.0, max(0.0, razao_cobertura))
+            cobertura_conceitual = min(1.0, max(0.3, razao_cobertura))
 
         # 2. Análise de Profundidade e Fundamentação
         # Avalia volume reflexivo e presença de conectivos argumentativos
@@ -95,7 +75,7 @@ class AnalisadorPedagogico:
             "nesse sentido", "assim sendo", "ao passo que", "evidencia-se", "observa-se"
         ]
         num_conectivos = sum(1 for c in conectivos_argumentativos if c in texto_limpo.lower())
-        
+
         if palavras >= 120 and num_conectivos >= 2:
             fundamentacao = 1.0
         elif palavras >= 50 and num_conectivos >= 1:
@@ -113,7 +93,7 @@ class AnalisadorPedagogico:
         erros_grosseiros = 0
         if len(re.findall(r"\b(vc|tb|pq|tbm|pra|oq|blz)\b", texto_limpo.lower())) > 0:
             erros_grosseiros += 1
-        
+
         qualidade_redacao = 1.0 - (erros_grosseiros * 0.15)
         qualidade_redacao = max(0.6, min(1.0, qualidade_redacao))
 
@@ -155,7 +135,7 @@ class AnalisadorPedagogico:
                 pontos_melhoria.append("Ausência de anexos solicitados.")
                 cumprimento_regras = 0.5
 
-        elif tipo_atividade == "prova_presencial":
+        elif tipo_atividade in ["prova_presencial", "prova_substitutiva"]:
             if palavras >= 40:
                 pontos_fortes.append("Desenvolvimento fundamentado e resposta discursiva estruturada.")
                 cumprimento_regras = 1.0
@@ -186,7 +166,7 @@ class AnalisadorPedagogico:
 
         score_ajustado = score_base * fator_originalidade
         nota_calculada = round(nota_maxima * score_ajustado, 2)
-        
+
         # Arredondamento pedagógico inteligente (múltiplos de 0.05)
         nota_calculada = round(nota_calculada * 20) / 20
         nota_calculada = min(nota_maxima, max(0.0, nota_calculada))
@@ -210,7 +190,7 @@ class AnalisadorPedagogico:
                     motivos_desconto.append(
                         "Não atendimento integral das etapas do roteiro de entrega ou desenvolvimento parcial da atividade prática."
                     )
-                elif tipo_atividade == "prova_presencial":
+                elif tipo_atividade in ["prova_presencial", "prova_substitutiva"]:
                     motivos_desconto.append(
                         "Resposta discursiva excessivamente sucinta, deixando de detalhar os fundamentos solicitados na questão."
                     )

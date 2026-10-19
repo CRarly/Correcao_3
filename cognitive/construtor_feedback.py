@@ -96,7 +96,7 @@ class ConstrutorFeedback:
                         f"desenvolvidos, resultando em uma entrega parcial frente ao que era esperado no enunciado.</p>"
                     )
 
-            elif tipo_atividade == "prova_presencial":
+            elif tipo_atividade in ["prova_presencial", "prova_substitutiva"]:
                 if nota >= nota_max * 0.85:
                     paragrafos.append(
                         f"<p>Excelente resposta na questão discursiva! Sua argumentação foi precisa, demonstrando domínio "
@@ -131,15 +131,12 @@ class ConstrutorFeedback:
             bullets_melhoria = "".join([f"<li>{pm}</li>" for pm in pontos_melhoria[:2]])
             paragrafos.append(f"<p><strong>Recomendações Construtivas:</strong><ul>{bullets_melhoria}</ul></p>")
 
-        # 5. Encerramento
+        # 5. Encerramento e Assinatura
         paragrafos.append(
-            f"<p>Continue se dedicando aos estudos e conte com o apoio docente na sua trajetória acadêmica!</p>"
+            f"<p>Continue se dedicando aos estudos e conte com o meu apoio na sua trajetória acadêmica!</p>"
+            f"<p>Atenciosamente,<br><strong>{nome_docente}</strong></p>"
         )
-        primeiro_doc = extrair_primeiro_nome(nome_docente)
-        paragrafos.append(f"<p>Atenciosamente, Prof. {primeiro_doc}</p>")
 
         return "".join(paragrafos)
 
 construtor_feedback = ConstrutorFeedback()
-
-

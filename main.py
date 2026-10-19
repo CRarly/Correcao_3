@@ -16,7 +16,7 @@ def main():
         menu_principal()
     else:
         from config import DEFAULT_PORT, find_available_port
-        
+
         target_port = DEFAULT_PORT
         for idx, arg in enumerate(sys.argv):
             if arg in ("--port", "-p") and idx + 1 < len(sys.argv):
@@ -27,14 +27,13 @@ def main():
 
         port = find_available_port(target_port)
         print("=" * 65)
-        print("   BRIGHTSPACE GRADER 2.0 | Servidor Dashboard Web")
+        print("   BRIGHTSPACE GRADER 3.0 | Servidor Dashboard Web")
         print("=" * 65)
         print(f"Iniciando em http://127.0.0.1:{port} ...")
-        
+
         from app import app
         threading.Timer(1.5, lambda: webbrowser.open(f"http://127.0.0.1:{port}")).start()
         uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
 
 if __name__ == "__main__":
     main()
-

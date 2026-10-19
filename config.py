@@ -34,6 +34,7 @@ def get_grades_url(ou: str | int) -> str:
 FORUM_KEYWORDS = ["Avaliação: Fórum de discussão", "Fórum de discussão", "Fórum Avaliativo"]
 ATIVIDADE_KEYWORDS = ["Avaliação: Atividade aberta", "Atividade aberta", "Atividade 3", "Atividade Aberta"]
 PROVA_KEYWORDS = ["Avaliação: Prova presencial", "Prova presencial", "Avaliação Presencial"]
+PROVA_SUBSTITUTIVA_KEYWORDS = ["Avaliação: Prova substitutiva", "Prova substitutiva", "Avaliação Substitutiva"]
 
 # Matriz Curricular Padrão de Pontuações
 SCORE_RULES = {
@@ -50,6 +51,10 @@ SCORE_RULES = {
     "PROVA_PRESENCIAL": {
         "discursiva_max": 2.0,
         "descricao": "Prova presencial: Questão discursiva avaliada com nota até 2,0."
+    },
+    "PROVA_SUBSTITUTIVA": {
+        "discursiva_max": 2.0,
+        "descricao": "Prova substitutiva: Questão discursiva avaliada com nota até 2,0."
     }
 }
 
@@ -78,5 +83,3 @@ def find_available_port(start_port: int = DEFAULT_PORT) -> int:
                 return port
         port += 1
     return start_port
-
-

@@ -29,7 +29,7 @@ def descobrir_todas_abas_e_cursos(username: str, password: str, headless: bool =
         ctx_kwargs = {"viewport": {"width": 1280, "height": 900}}
         if auth_file.exists():
             ctx_kwargs["storage_state"] = str(auth_file)
-            
+
         context = browser.new_context(**ctx_kwargs)
         page = context.new_page()
         page.set_default_timeout(NAV_TIMEOUT)
@@ -39,18 +39,35 @@ def descobrir_todas_abas_e_cursos(username: str, password: str, headless: bool =
             time.sleep(3)
 
             # Verificar se redirecionou para tela de login
-            if "login" in page.url.lower():
+            precisa_login = False
+            if "login" in page.url.lower() and "página inicial" not in page.title().lower():
+                precisa_login = True
+            elif page.locator("input#userName, input#username, #userName").count() > 0 and "página inicial" not in page.title().lower():
+                precisa_login = True
+
+            if precisa_login:
                 state.log("Sessão expirada ou não autenticada. Realizando login...")
-                acesso_direto = page.locator("text='Acesso Direto'").first
-                if acesso_direto.count() > 0:
-                    acesso_direto.click()
-                user_input = page.locator("#userName, #username, #txtUsuario").first
+                user_input = page.locator("input#userName, input#username, #userName").first
+                if not user_input.is_visible():
+                    state.log("Painel 'Acesso Direto' retraído. Expandindo formulário de login...")
+                    btn_acesso = page.get_by_text("Acesso Direto").first
+                    if btn_acesso.count() > 0:
+                        btn_acesso.click()
+                    else:
+                        opener = page.locator(".d2l-collapsible-panel-opener, button:has-text('Acesso Direto')").first
+                        if opener.count() > 0:
+                            opener.click()
+                    time.sleep(1.5)
+
+                user_input.wait_for(state="visible", timeout=15000)
                 user_input.fill(username)
-                pass_input = page.locator("#password, #txtSenha").first
+                pass_input = page.locator("input#password, input#txtSenha, #password").first
                 pass_input.fill(password)
-                page.locator("button[type='submit'], button:has-text('Fazer login')").first.click()
-                page.wait_for_load_state("domcontentloaded", timeout=NAV_TIMEOUT)
+                submit_btn = page.locator("button.d2l-button:has-text('Fazer login'), button:has-text('Fazer login'), button.d2l-button, button[type='submit']").first
+                submit_btn.click()
                 time.sleep(4)
+                page.goto(f"{BASE_AVA_URL}/d2l/home", wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
+                time.sleep(2)
                 context.storage_state(path=str(auth_file))
 
             # Executar descoberta avançada atravessando shadow DOMs
@@ -147,7 +164,7 @@ def descobrir_todas_abas_e_cursos(username: str, password: str, headless: bool =
                 // 3. Iterar por cada aba e extrair disciplinas completas
                 for (const item of abasProcessar) {
                     const tabEl = item.aba.element;
-                    
+
                     if (tabEl) {
                         // Se não estiver usando dialog, acionar seta para navegar nas abas se necessário
                         if (!usandoDialog) {

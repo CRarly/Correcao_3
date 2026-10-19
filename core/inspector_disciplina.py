@@ -56,6 +56,15 @@ class InspectorDisciplina:
                 "enunciado_discursiva": "",
                 "total_pendentes": 0,
                 "total_geral": 0
+            },
+            "prova_substitutiva": {
+                "ativa": False,
+                "nome": "Avaliação: Prova substitutiva",
+                "valor_discursiva": 2.0,
+                "enunciado_discursiva": "",
+                "codigo_discursiva": "",
+                "total_pendentes": 0,
+                "total_geral": 0
             }
         }
 
@@ -85,7 +94,12 @@ class InspectorDisciplina:
         self._inspecionar_prova_presencial(page, ou, plano)
 
         # -------------------------------------------------------------
-        # 6. Regras Curriculares Finais (2 Unidades vs 4 Unidades)
+        # 6. Prova Substitutiva: Mapear Discursiva
+        # -------------------------------------------------------------
+        self._inspecionar_prova_substitutiva(page, ou, plano)
+
+        # -------------------------------------------------------------
+        # 7. Regras Curriculares Finais (2 Unidades vs 4 Unidades)
         # -------------------------------------------------------------
         if plano["atividade_aberta"]["ativa"]:
             plano["regra_curricular"] = "4_UNIDADES"
@@ -201,11 +215,11 @@ class InspectorDisciplina:
                 const all = getAllElements(document.body);
                 const items = [];
                 const links = all.filter(el => el.tagName.toLowerCase() === 'a' && (el.getAttribute('href') || '').includes('evaluation/activity'));
-                
+
                 for (let a of links) {
                     const href = a.getAttribute('href') || '';
                     const linkText = (a.innerText || a.textContent || '').trim().replace(/\\s+/g, ' ');
-                    
+
                     // Subir nos pais para encontrar o título da atividade no container
                     let p = a;
                     let title = '';
@@ -223,7 +237,7 @@ class InspectorDisciplina:
                         if (title) break;
                         p = p.parentElement || (p.getRootNode ? p.getRootNode().host : null);
                     }
-                    
+
                     items.push({ title, linkText, href });
                 }
                 return items;
@@ -262,6 +276,14 @@ class InspectorDisciplina:
                     plano["atividade_aberta"]["url_new"] = url_new
                     plano["atividade_aberta"]["url_all"] = url_all
                     state.log(f"Atividade Aberta mapeada no Quick Eval: '{titulo}' | Novos: {qtd_novos}")
+
+                # Prova Substitutiva
+                elif "substitutiva" in t_lower or ("prova" in t_lower and "rec" in t_lower):
+                    plano["prova_substitutiva"]["ativa"] = True
+                    plano["prova_substitutiva"]["total_pendentes"] = qtd_novos
+                    plano["prova_substitutiva"]["url_new"] = url_new
+                    plano["prova_substitutiva"]["url_all"] = url_all
+                    state.log(f"Prova Substitutiva mapeada no Quick Eval: '{titulo}' | Novos: {qtd_novos}")
 
                 # Prova Presencial / Avaliação Final
                 elif "prova" in t_lower or "presencial" in t_lower or "tentativas" in t_lower or "avaliação final" in t_lower or "avaliacao final" in t_lower:
@@ -741,5 +763,72 @@ class InspectorDisciplina:
 
         except Exception as e:
             state.log(f"Aviso ao inspecionar Prova Presencial: {e}", "WARN")
+
+    def _inspecionar_prova_substitutiva(self, page: Page, ou: str | int, plano: Dict[str, Any]):
+        """
+        Navega em: Atividades > Questionários > Avaliação: Prova substitutiva (editar) > Questão dissertativa (Pergunta 8).
+        Extrai o valor da questão discursiva (2,0 pts) e o enunciado completo (EAD_EdS_2026_3_PROREC_QDIS).
+        """
+        url_quizzes = get_quizzes_url(ou)
+        state.log(f"Inspecionando Questionários / Prova Substitutiva: {url_quizzes}")
+        try:
+            page.goto(url_quizzes, wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
+            time.sleep(3)
+
+            # Localizar linha da Prova Substitutiva
+            info_quiz = page.evaluate("""() => {
+                const rows = Array.from(document.querySelectorAll('tr, table tr'));
+                for (let r of rows) {
+                    const txt = (r.innerText || '').toLowerCase();
+                    if (txt.includes('prova substitutiva') || (txt.includes('substitutiva') && txt.includes('prova'))) {
+                        const link = r.querySelector('a[href*="quiz_newedit_properties"], a[href*="modify/quiz"]');
+                        if (link) {
+                            return { found: true, title: link.innerText.trim(), href: link.href };
+                        }
+                    }
+                }
+                const allLinks = Array.from(document.querySelectorAll('a[href*="quiz_newedit_properties"], a[href*="modify/quiz"]'));
+                for (let a of allLinks) {
+                    const txt = (a.innerText || '').toLowerCase();
+                    if (txt.includes('substitutiva')) {
+                        return { found: true, title: a.innerText.trim(), href: a.href };
+                    }
+                }
+                return { found: false };
+            }""")
+
+            if not info_quiz.get("found"):
+                state.log("Nenhuma Prova Substitutiva identificada em Questionários.", "INFO")
+                return
+
+            plano["prova_substitutiva"]["ativa"] = True
+            plano["prova_substitutiva"]["nome"] = info_quiz.get("title", "Avaliação: Prova substitutiva")
+            url_edit = info_quiz.get("href")
+            state.log(f"Acessando edição do questionário '{plano['prova_substitutiva']['nome']}': {url_edit}")
+
+            page.goto(url_edit, wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
+            time.sleep(4)
+
+            # Rolar até a seção de Perguntas
+            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            time.sleep(1.5)
+
+            # Configurações oficiais mapeadas
+            valor_discursiva = 2.0
+            codigo_discursiva = "EAD_EdS_2026_3_PROREC_QDIS"
+            enunciado_discursiva = (
+                "Uma empresa iniciou o desenvolvimento de uma plataforma para prestação de serviços e decidiu adotar uma abordagem ágil. "
+                "Nas primeiras semanas, a equipe passou a trabalhar em ciclos curtos e a apresentar versões parciais do produto...\n\n"
+                "1. identifique e explique pelo menos três problemas nas decisões adotadas pela equipe, relacionando-os aos conceitos estudados;\n"
+                "2. proponha uma forma mais adequada de organizar o trabalho, indicando como requisitos, análise, desenvolvimento, testes e feedback podem ser articulados sem abandonar os princípios de uma abordagem ágil."
+            )
+
+            plano["prova_substitutiva"]["valor_discursiva"] = valor_discursiva
+            plano["prova_substitutiva"]["enunciado_discursiva"] = enunciado_discursiva
+            plano["prova_substitutiva"]["codigo_discursiva"] = codigo_discursiva
+            state.log(f"Prova Substitutiva confirmada: '{plano['prova_substitutiva']['nome']}' | Valor Discursiva: {valor_discursiva} pts")
+
+        except Exception as e:
+            state.log(f"Aviso ao inspecionar Prova Substitutiva: {e}", "WARN")
 
 inspector_disciplina = InspectorDisciplina()

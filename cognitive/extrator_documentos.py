@@ -111,4 +111,3 @@ def extrair_texto_documento(caminho_arquivo: str | Path) -> Dict[str, Any]:
         "tamanho_bytes": tamanho,
         "erro": "" if bool(texto_limpo and not texto_limpo.startswith("[Erro")) else texto_limpo
     }
-

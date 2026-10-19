@@ -17,7 +17,7 @@ from core.browser_session import BrowserSession
 
 def banner():
     print("=" * 65)
-    print("   BRIGHTSPACE GRADER 2.0 | Motor Pedagógico Especialista")
+    print("   BRIGHTSPACE GRADER 3.0 | Motor Pedagógico Especialista")
     print("=" * 65)
 
 def menu_principal():
@@ -31,11 +31,11 @@ def menu_principal():
     print("\nAbas disponíveis:")
     for idx, a in enumerate(abas, 1):
         print(f"  [{idx}] {a}")
-    
+
     escolha_aba = input(f"\nEscolha a aba [1-{len(abas)}] (Padrão 1): ").strip()
     idx_aba = int(escolha_aba) - 1 if escolha_aba.isdigit() and 1 <= int(escolha_aba) <= len(abas) else 0
     aba_selecionada = abas[idx_aba]
-    
+
     turmas = dados.get("disciplinas_por_aba", {}).get(aba_selecionada, [])
     if not turmas:
         print("Nenhuma turma localizada nesta aba.")
@@ -57,19 +57,23 @@ def menu_principal():
         return
 
     print("\nSelecione as Atividades para Avaliação:")
-    print("  [1] Todas (Fórum + Atividade Aberta + Prova Presencial)")
+    print("  [1] Todas (Fórum + Atividade Aberta + Provas)")
     print("  [2] Apenas Fórum de Discussão")
     print("  [3] Apenas Atividade Aberta")
     print("  [4] Apenas Prova Presencial (Questão Discursiva)")
-    op_ativ = input("Opção [1-4] (Padrão 1): ").strip() or "1"
-    
+    print("  [5] Apenas Prova Substitutiva (Questão Discursiva)")
+    print("  [6] Ambas as Provas (Presencial + Substitutiva)")
+    op_ativ = input("Opção [1-6] (Padrão 1): ").strip() or "1"
+
     mapa_ativ = {
-        "1": ["forum", "atividade_aberta", "prova_presencial"],
+        "1": ["forum", "atividade_aberta", "prova_presencial", "prova_substitutiva"],
         "2": ["forum"],
         "3": ["atividade_aberta"],
-        "4": ["prova_presencial"]
+        "4": ["prova_presencial"],
+        "5": ["prova_substitutiva"],
+        "6": ["prova_presencial", "prova_substitutiva"]
     }
-    atividades_escolhidas = mapa_ativ.get(op_ativ, ["forum", "atividade_aberta", "prova_presencial"])
+    atividades_escolhidas = mapa_ativ.get(op_ativ, ["forum", "atividade_aberta", "prova_presencial", "prova_substitutiva"])
 
     print("\nSelecione o Modo Operacional:")
     print("  [1] Execução Normal (Novos envios + Auditoria comum)")
@@ -77,7 +81,7 @@ def menu_principal():
     print("  [3] Auditoria (Verificar já corrigidos, {FirstName}, notas)")
     print("  [4] Auditoria Geral (Auditar 100% dos estudantes)")
     op_modo = input("Opção [1-4] (Padrão 1): ").strip() or "1"
-    
+
     mapa_modo = {
         "1": "tradicional",
         "2": "recorrigir",
@@ -92,7 +96,7 @@ def menu_principal():
     print("\n" + "=" * 65)
     print("INICIANDO EXECUÇÃO")
     print("=" * 65)
-    
+
     orquestrador.executar(
         username=username,
         password=password,
@@ -104,4 +108,3 @@ def menu_principal():
 
 if __name__ == "__main__":
     menu_principal()
-

@@ -58,9 +58,18 @@ class EngineStateManager:
         # Manter no máximo os últimos 500 logs em memória
         if len(self.logs) > 500:
             self.logs = self.logs[-500:]
-        
-        # Imprimir no console também
-        print(f"[{now}] [{level}] {message}", flush=True)
+
+        # Imprimir no console também com fallback seguro de encoding
+        try:
+            print(f"[{now}] [{level}] {message}", flush=True)
+        except Exception:
+            try:
+                import sys
+                enc = sys.stdout.encoding or 'ascii'
+                safe_msg = message.encode(enc, errors='replace').decode(enc)
+                print(f"[{now}] [{level}] {safe_msg}", flush=True)
+            except Exception:
+                pass
         self.save()
 
     def update_progress(self, current: int, total: int, student: str = "", activity: str = ""):
@@ -137,4 +146,3 @@ class EngineStateManager:
                 pass
 
 state = EngineStateManager()
-

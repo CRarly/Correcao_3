@@ -437,13 +437,13 @@ class MotorForuns:
 
             # 3. Aguardar carregamento completo e extrair postagens e réplicas
             postagens = self._aguardar_e_extrair_postagens_forum(page)
-            
+
             # Separar postagem principal dos comentários
             post_principal, comentarios = self.separar_post_e_comentarios(postagens, comando_oficial)
 
             if not post_principal and not comentarios:
                 state.log(f"{pos_str}{nome_aluno}: Sem postagens no Fórum (-Nenhum texto inserido-).")
-                
+
                 # Verificar se já possui nota 0 ou comentário prévio
                 dados_atuais = obter_nota_e_feedback_consistent_evaluation(page)
                 nota_previa = dados_atuais.get("nota")
@@ -559,9 +559,9 @@ class MotorForuns:
             if not carregando and elapsed >= min_wait:
                 sem_posts = page.evaluate("""() => {
                     const text = (document.body.innerText || '').toLowerCase();
-                    return text.includes('nenhuma postagem') || 
-                           text.includes('nenhum tópico') || 
-                           text.includes('não há postagens') || 
+                    return text.includes('nenhuma postagem') ||
+                           text.includes('nenhum tópico') ||
+                           text.includes('não há postagens') ||
                            text.includes('no posts') ||
                            text.includes('o usuário não postou') ||
                            text.includes('nenhum texto inserido') ||

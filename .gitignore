@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+auth_state*.json
+engine_state.json
+relatorios/
+scratch/
+temp_downloads_*/
+*.png

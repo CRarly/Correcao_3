@@ -49,7 +49,7 @@ class BrowserSession:
         self._aborted = False
         state.log(f"Iniciando navegador Chromium (Headless: {self.headless})...")
         self.playwright = sync_playwright().start()
-        
+
         args = [
             "--no-sandbox",
             "--disable-setuid-sandbox",
@@ -57,14 +57,14 @@ class BrowserSession:
             "--disable-gpu",
             "--disable-blink-features=AutomationControlled"
         ]
-        
+
         self.browser = self.playwright.chromium.launch(
             headless=self.headless,
             args=args
         )
 
         auth_path = obter_caminho_auth(self.username) if self.username else None
-        
+
         if auth_path and auth_path.exists():
             state.log(f"Reutilizando sessão salva: {auth_path.name}")
             try:
@@ -80,7 +80,7 @@ class BrowserSession:
 
         self.page = self.context.new_page()
         self.page.set_default_timeout(NAV_TIMEOUT)
-        
+
         # Realizar ou validar login
         self.garantir_login()
         self.detectar_docente()
@@ -88,37 +88,46 @@ class BrowserSession:
 
     def garantir_login(self):
         state.log("Acessando painel principal do AVA Católica...")
-        self.page.goto(BASE_AVA_URL, wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
+        self.page.goto(f"{BASE_AVA_URL}/d2l/home", wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
         time.sleep(2)
 
-        # Checar se caiu na tela de login
-        if "login" in self.page.url.lower() or self.page.locator("input#userName, input#username, input#txtUsuario").count() > 0:
+        # Checar se precisa autenticar
+        precisa_login = False
+        if "login" in self.page.url.lower() and "página inicial" not in self.page.title().lower():
+            precisa_login = True
+        elif self.page.locator("input#userName, input#username, #userName").count() > 0 and "página inicial" not in self.page.title().lower():
+            precisa_login = True
+
+        if precisa_login:
             state.log("Autenticação necessária. Efetuando login...")
             if not self.username or not self.password:
                 raise ValueError("Credenciais não fornecidas para autenticação no AVA.")
 
-            # No portal UBEC / Catolica, pode haver uma aba ou botao 'Acesso Direto' que torna os campos visiveis
-            try:
-                acesso_direto = self.page.get_by_text("Acesso Direto").first
-                if acesso_direto.count() > 0:
-                    acesso_direto.click()
-                    time.sleep(1.5)
-            except Exception:
-                pass
-
-            # Preencher usuário e senha
-            user_input = self.page.locator("input#userName, input#username, input#txtUsuario").first
-            pass_input = self.page.locator("input#password, input#txtSenha").first
-            submit_btn = self.page.locator("button[type='submit'], input[type='submit'], button#btnLogin, button:has-text('Fazer login')").first
+            user_input = self.page.locator("input#userName, input#username, #userName").first
+            # Se o campo de usuário não estiver visível (painel retraído), abrir 'Acesso Direto'
+            if not user_input.is_visible():
+                state.log("Painel 'Acesso Direto' retraído. Expandindo formulário de login...")
+                btn_acesso = self.page.get_by_text("Acesso Direto").first
+                if btn_acesso.count() > 0:
+                    btn_acesso.click()
+                else:
+                    opener = self.page.locator(".d2l-collapsible-panel-opener, button:has-text('Acesso Direto')").first
+                    if opener.count() > 0:
+                        opener.click()
+                time.sleep(1.5)
 
             user_input.wait_for(state="visible", timeout=15000)
             user_input.fill(self.username)
+            pass_input = self.page.locator("input#password, input#txtSenha, #password").first
             pass_input.fill(self.password)
+
+            submit_btn = self.page.locator("button.d2l-button:has-text('Fazer login'), button:has-text('Fazer login'), button.d2l-button, button[type='submit']").first
             submit_btn.click()
-            
-            # Aguardar pós-login
-            self.page.wait_for_load_state("domcontentloaded", timeout=NAV_TIMEOUT)
+
+            # Aguardar pós-login e navegar de forma limpa para a home
             time.sleep(4)
+            self.page.goto(f"{BASE_AVA_URL}/d2l/home", wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
+            time.sleep(2)
 
             # Salvar auth state
             if self.username:
@@ -202,4 +211,3 @@ class BrowserSession:
             except Exception:
                 pass
             cls.active_session = None
-

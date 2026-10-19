@@ -13,4 +13,3 @@ __all__ = [
     "motor_provas",
     "orquestrador"
 ]
-

@@ -72,7 +72,7 @@ def inserir_nota_consistent_evaluation(page: Page, nota: float) -> bool:
 
     if res.get("success"):
         return True
-    
+
     # Fallback Playwright Locator
     try:
         loc = page.locator("d2l-input-number input, input[aria-label*='Nota Geral'], input[aria-label*='Nota']").first
@@ -493,7 +493,7 @@ def contar_anexos_submissao(page: Page) -> List[str]:
                 const ariaLow = aria.toLowerCase();
                 const txt = (el.innerText || el.textContent || '').trim();
 
-                if (ariaLow.includes('para baixar o anexo') || ariaLow.includes('clique para baixar') || 
+                if (ariaLow.includes('para baixar o anexo') || ariaLow.includes('clique para baixar') ||
                     (ariaLow.includes('baixar o anexo') && !ariaLow.includes('todos'))) {
                     let nome = txt;
                     if (!nome || nome.length < 3) {
@@ -511,7 +511,7 @@ def contar_anexos_submissao(page: Page) -> List[str]:
                 for (let el of all) {
                     const href = (el.getAttribute('href') || '').toLowerCase();
                     const txt = (el.innerText || el.textContent || '').trim();
-                    if ((href.includes('downloadattachment') || href.includes('download_submission_file')) && 
+                    if ((href.includes('downloadattachment') || href.includes('download_submission_file')) &&
                         !href.includes('downloadall') && txt.length > 2) {
                         if (!anexos.includes(txt)) anexos.push(txt);
                     }
@@ -522,4 +522,3 @@ def contar_anexos_submissao(page: Page) -> List[str]:
         }""")
     except Exception:
         return []
-

@@ -1,9 +1,9 @@
 @echo off
 chcp 65001 >nul
-title Brightspace Grader 2.0 - Especialista
+title Brightspace Grader 3.0 - Especialista Integrado
 cls
 echo ===================================================================
-echo             BRIGHTSPACE GRADER 2.0 - MOTOR ESPECIALISTA
+echo             BRIGHTSPACE GRADER 3.0 - MOTOR INTEGRADO
 echo ===================================================================
 echo.
 
@@ -14,7 +14,7 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-echo Iniciando o Painel do Brightspace Grader 2.0...
+echo Iniciando o Painel do Brightspace Grader 3.0...
 python main.py %*
 if %ERRORLEVEL% NEQ 0 (
     echo.

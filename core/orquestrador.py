@@ -14,7 +14,7 @@ from core.inspector_disciplina import inspector_disciplina
 from core.motor_foruns import motor_foruns
 from core.motor_atividades import motor_atividades
 from core.motor_provas import motor_provas
-from core.motor_discursivas import motor_discursivas
+from core.motor_provas_substitutivas import motor_provas_substitutivas
 from cognitive.detector_plagio import detector_plagio
 
 class OrquestradorCorrecoes:
@@ -106,14 +106,17 @@ class OrquestradorCorrecoes:
                         res_ativ = motor_atividades.executar(page, ou, nome_disc, modo, plano, docente, temp_dir)
                         todos_resultados.extend(res_ativ)
 
-                    # FASE 4: Executar Prova Presencial (Discursivas) com o [NOVO MOTOR DE CORREÇÃO] se solicitada
-                    if "prova_presencial" in atividades_selecionadas:
-                        state.current_stage = f"Avaliando Prova Presencial [Novo Motor de Correção]: {nome_disc}"
-                        state.log(f"\n=======================================================")
-                        state.log(f"[NOVO MOTOR DE CORREÇÃO] Iniciando Prova Presencial (Discursivas): {nome_disc}")
-                        state.log(f"=======================================================")
-                        res_prova = motor_discursivas.executar_turma(page, ou, nome_disc, modo, docente)
+                    # FASE 4: Executar Prova Presencial se solicitada e ativa
+                    if "prova_presencial" in atividades_selecionadas and plano.get("prova_presencial", {}).get("ativa", False):
+                        state.current_stage = f"Avaliando Prova Presencial: {nome_disc}"
+                        res_prova = motor_provas.executar(page, ou, nome_disc, modo, plano, docente)
                         todos_resultados.extend(res_prova)
+
+                    # FASE 5: Executar Prova Substitutiva se solicitada e ativa
+                    if "prova_substitutiva" in atividades_selecionadas and plano.get("prova_substitutiva", {}).get("ativa", False):
+                        state.current_stage = f"Avaliando Prova Substitutiva: {nome_disc}"
+                        res_sub = motor_provas_substitutivas.executar(page, ou, nome_disc, modo, plano, docente)
+                        todos_resultados.extend(res_sub)
 
                     state.increment_stat("disciplinas_processadas")
 
@@ -220,4 +223,3 @@ class OrquestradorCorrecoes:
             json.dump(lista, f, ensure_ascii=False, indent=2)
 
 orquestrador = OrquestradorCorrecoes()
-

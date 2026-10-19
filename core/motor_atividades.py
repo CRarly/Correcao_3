@@ -40,53 +40,95 @@ class MotorAtividades:
     - Duplo salvamento em rascunho e sem assinatura docente.
     """
 
-    def gerar_criterios_atividade(self, instrucoes: str, nota_maxima: float = 1.5) -> Dict[str, Any]:
+    def identificar_tipologia_atividade(self, instrucoes: str, templates_nomes: List[str] = None) -> str:
+        """Identifica dinamicamente a tipologia acadêmica da atividade (Fichamento, Podcast, Mapa Mental, etc.)."""
+        texto_comb = (instrucoes or "").lower() + " " + " ".join([t.lower() for t in (templates_nomes or [])])
+        if any(k in texto_comb for k in ["fichamento", "ficha de leitura", "resenha", "fichar"]):
+            return "FICHAMENTO"
+        if any(k in texto_comb for k in ["podcast", "áudio", "audio", "roteiro de áudio", "episódio"]):
+            return "PODCAST"
+        if any(k in texto_comb for k in ["mapa mental", "mapa conceitual", "infográfico", "diagrama mental"]):
+            return "MAPA_MENTAL"
+        if any(k in texto_comb for k in ["estudo de caso", "caso clínico", "diagnóstico"]):
+            return "ESTUDO_DE_CASO"
+        return "RELATORIO_TECNICO"
+
+    def gerar_criterios_atividade(self, instrucoes: str, nota_maxima: float = 1.5, templates_nomes: List[str] = None) -> Dict[str, Any]:
         """
-        Analisa as instruções da Atividade Aberta e monta a matriz de critérios analíticos pré-estabelecidos:
-        - Critério 1: Conformidade Estrutural e Atendimento às Diretrizes (~30%)
-        - Critério 2: Desenvolvimento Teórico-Prático e Resolução do Comando (~50%)
-        - Critério 3: Rigor Conceitual, Coesão e Norma Culta (~20%)
+        Analisa as instruções da Atividade Aberta e templates fornecidos,
+        identificando a tipologia acadêmica e sintetizando a matriz analítica específica.
         """
-        peso_estrutural = round(nota_maxima * 0.30, 2)
-        peso_resolucao = round(nota_maxima * 0.50, 2)
-        peso_rigor = round(nota_maxima - peso_estrutural - peso_resolucao, 2)
+        tipologia = self.identificar_tipologia_atividade(instrucoes, templates_nomes)
+        peso_c1 = round(nota_maxima * 0.30, 2)
+        peso_c2 = round(nota_maxima * 0.50, 2)
+        peso_c3 = round(nota_maxima - peso_c1 - peso_c2, 2)
+
+        if tipologia == "FICHAMENTO":
+            nome_c1 = "Aderência ao Modelo/Template e Tipologia (Fichamento)"
+            desc_c1 = "Utilização do template oficial Fichamento.docx, preenchimento do cabeçalho e organização formal em seções de fichamento."
+            nome_c2 = "Preenchimento da Matriz Avaliativa e Ficha de Leitura do Texto-Base"
+            desc_c2 = "Avaliação das dimensões analíticas do artigo com legenda (0 a 4), respostas às questões de leitura crítica e articulação com o artigo de apoio."
+            nome_c3 = "Rigor Conceitual, Coesão e Norma Culta"
+            desc_c3 = "Uso correto do vocabulário técnico de Engenharia de Software e Requisitos, clareza expositiva e norma padrão."
+        elif tipologia == "PODCAST":
+            nome_c1 = "Estrutura do Roteiro e Adequação à Linguagem Sonora"
+            desc_c1 = "Planejamento estruturado para podcast (introdução, pauta e encerramento), adequação dialógica e estimativa de tempo."
+            nome_c2 = "Domínio do Conteúdo e Resolução da Pauta Proposta"
+            desc_c2 = "Desenvolvimento aprofundado dos tópicos solicitados na pauta do episódio com articulação teórica consistente."
+            nome_c3 = "Clareza Expositiva e Coesão Verbal"
+            desc_c3 = "Fluidez discursiva, concisão argumentativa e vocabulário técnico apropriado."
+        elif tipologia == "MAPA_MENTAL":
+            nome_c1 = "Estruturação Conceitual, Nós e Hierarquia Visual"
+            desc_c1 = "Organização do mapa em nós e ramos hierárquicos, conexões lógicas entre termos e legendas explicativas."
+            nome_c2 = "Cobertura Temática e Resolução dos Tópicos Solicitados"
+            desc_c2 = "Abrangência conceitual dos temas propostos no comando da atividade com síntese das ideias-chave."
+            nome_c3 = "Precisão Terminológica e Síntese Conceitual"
+            desc_c3 = "Emprego exato dos conceitos e termos técnicos sem ambiguidade."
+        else:
+            nome_c1 = "Conformidade Estrutural e Atendimento às Diretrizes"
+            desc_c1 = "Organização do trabalho, estrutura da entrega, observância ao modelo/formato exigido e adequação da extensão."
+            nome_c2 = "Desenvolvimento Teórico-Prático e Resolução do Comando"
+            desc_c2 = "Resolução integral das questões propostas nas instruções, profundidade analítica, aplicação prática e atendimento ao objetivo pedagógico."
+            nome_c3 = "Rigor Conceitual, Coesão e Norma Culta"
+            desc_c3 = "Uso correto do vocabulário técnico da disciplina, clareza expositiva, coerência textual e atendimento à norma culta."
 
         criterios = {
+            "tipologia": tipologia,
             "nota_maxima": nota_maxima,
-            "peso_estrutural": peso_estrutural,
-            "peso_resolucao": peso_resolucao,
-            "peso_rigor": peso_rigor,
+            "peso_estrutural": peso_c1,
+            "peso_resolucao": peso_c2,
+            "peso_rigor": peso_c3,
             "criterios": [
                 {
                     "id": "criterio_1_estrutural",
-                    "nome": "Conformidade Estrutural e Atendimento às Diretrizes",
-                    "peso": peso_estrutural,
-                    "descricao": "Organização do trabalho, estrutura da entrega, observância ao modelo/formato exigido e adequação da extensão.",
+                    "nome": nome_c1,
+                    "peso": peso_c1,
+                    "descricao": desc_c1,
                     "regras_desconto": [
-                        {"faixa": "Pleno", "nota": peso_estrutural, "descricao": "Estrutura completa, bem organizada e em plena conformidade com as diretrizes e modelo."},
-                        {"faixa": "Parcial", "nota": round(peso_estrutural * 0.5, 2), "descricao": "Estrutura básica ou ausência parcial de elementos orientadores do modelo."},
+                        {"faixa": "Pleno", "nota": peso_c1, "descricao": "Estrutura completa e em plena conformidade com as diretrizes e modelo."},
+                        {"faixa": "Parcial", "nota": round(peso_c1 * 0.55, 2), "descricao": "Estrutura básica ou ausência parcial de elementos orientadores do modelo."},
                         {"faixa": "Insuficiente", "nota": 0.0, "descricao": "Não seguiu o modelo proposto ou entrega desestruturada."}
                     ]
                 },
                 {
                     "id": "criterio_2_resolucao",
-                    "nome": "Desenvolvimento Teórico-Prático e Resolução do Comando",
-                    "peso": peso_resolucao,
-                    "descricao": "Resolução integral das questões propostas nas instruções, profundidade analítica, aplicação prática e atendimento ao objetivo pedagógico.",
+                    "nome": nome_c2,
+                    "peso": peso_c2,
+                    "descricao": desc_c2,
                     "regras_desconto": [
-                        {"faixa": "Pleno", "nota": peso_resolucao, "descricao": "Resolução completa e aprofundada de todas as etapas e questões solicitadas."},
-                        {"faixa": "Parcial", "nota": round(peso_resolucao * 0.5, 2), "descricao": "Resolução parcial das questões ou abordagem com lacunas em pontos-chave do comando."},
+                        {"faixa": "Pleno", "nota": peso_c2, "descricao": "Resolução completa e aprofundada de todas as etapas e questões solicitadas."},
+                        {"faixa": "Parcial", "nota": round(peso_c2 * 0.55, 2), "descricao": "Resolução parcial das questões ou abordagem com lacunas em pontos-chave do comando."},
                         {"faixa": "Insuficiente", "nota": 0.0, "descricao": "Não resolveu o comando proposto ou abordagem superficial/fuga ao tema."}
                     ]
                 },
                 {
                     "id": "criterio_3_rigor",
-                    "nome": "Rigor Conceitual, Coesão e Norma Culta",
-                    "peso": peso_rigor,
-                    "descricao": "Uso correto do vocabulário técnico da disciplina, clareza expositiva, coerência textual e atendimento à norma culta.",
+                    "nome": nome_c3,
+                    "peso": peso_c3,
+                    "descricao": desc_c3,
                     "regras_desconto": [
-                        {"faixa": "Pleno", "nota": peso_rigor, "descricao": "Vocabulário técnico apropriado, articulação fluida e excelente domínio gramatical."},
-                        {"faixa": "Parcial", "nota": round(peso_rigor * 0.6, 2), "descricao": "Compreensível, mas com desvios pontuais de norma culta ou concisão excessiva."},
+                        {"faixa": "Pleno", "nota": peso_c3, "descricao": "Vocabulário técnico apropriado, articulação fluida e excelente domínio gramatical."},
+                        {"faixa": "Parcial", "nota": round(peso_c3 * 0.55, 2), "descricao": "Compreensível, mas com desvios pontuais de norma culta ou concisão excessiva."},
                         {"faixa": "Insuficiente", "nota": 0.0, "descricao": "Inconsistências conceituais severas ou fragmentação textual."}
                     ]
                 }
@@ -200,49 +242,117 @@ class MotorAtividades:
         c3_nome = criterios_info["criterios"][2]["nome"]
 
         descontos = []
+        tipologia = criterios_info.get("tipologia", "RELATORIO_TECNICO")
 
-        # Critério 1: Conformidade Estrutural
-        if total_arqs >= 1 and palavras >= 100:
-            nota_c1 = p_estrutural
-            c1_parecer = "Estrutura do trabalho adequada, com boa organização e atendimento às orientações de entrega."
-        elif total_arqs >= 1 and palavras >= 40:
-            nota_c1 = round(p_estrutural * 0.70, 2)
-            c1_parecer = "Estrutura básica apresentada, mas com desenvolvimento sucinto em relação à extensão esperada para a atividade."
-            descontos.append("Estrutura ou extensão concisa: aprofunde a organização e o detalhamento das seções do documento.")
+        if tipologia == "FICHAMENTO":
+            # 1. Validação estrutural das seções do template Fichamento.docx
+            has_cabecalho = any(c in texto_lower for c in ["nome", "curso", "disciplina", "data:", "matrícula", "matricula", "aluno", "aluna"])
+            has_matriz = any(k in texto_lower for k in ["roteiro", "legenda", "satisfaz", "embasamento", "observação", "observacao", "relevância", "relevancia"])
+            has_perguntas = any(q in texto_lower for q in ["problema", "proposta", "validação", "validacao", "conclusões", "conclusoes", "trabalhos futuros", "questões", "questoes"])
+            has_dissertativo = any(d in texto_lower for d in ["texto dissertativo", "análise de requisitos aplicada", "síntese crítica", "resenha crítica"]) or (palavras >= 750 and any(a in texto_lower for a in ["bez", "nienow", "flores"]))
+
+            # Ferramentas e termos de Engenharia de Software
+            ferramentas_count = sum(1 for f in ["ardora", "courselab", "exe-learning", "xerte"] if f in texto_lower)
+            termos_er_count = sum(1 for t in ["elicitação", "elicitacao", "requisitos funcionais", "requisitos não funcionais", "casos de uso", "caso de uso", "modelagem", "validação", "validacao", "scorm", "usabilidade", "diagrama"] if t in texto_lower)
+            conectivos_count = sum(1 for c in ["portanto", "contudo", "entretanto", "além disso", "nesse sentido", "assim sendo", "desta forma", "por conseguinte", "além da", "um ponto importante", "nesse contexto", "com base", "por outro lado"] if c in texto_lower)
+
+            # Critério 1: Aderência ao Modelo/Template e Tipologia (0.45 pts)
+            if has_cabecalho and has_matriz and has_perguntas and (has_dissertativo or palavras >= 750):
+                nota_c1 = p_estrutural
+                c1_parecer = "Estrutura do Fichamento plenamente atendida, contemplando cabeçalho formal, matriz com legenda (0 a 4), guia de leitura e síntese dissertativa."
+            elif has_cabecalho and (has_perguntas or has_matriz):
+                nota_c1 = round(p_estrutural * 0.65, 2)
+                if not has_matriz:
+                    c1_parecer = "Estrutura parcial: a seção da Matriz Avaliativa (com legenda de 0 a 4 e critérios) foi suprimida do documento original."
+                    descontos.append("Observância integral ao modelo: o template exigia o preenchimento da Matriz Avaliativa (escala 0 a 4) previamente às questões discursivas.")
+                elif not has_dissertativo and palavras < 700:
+                    c1_parecer = "Estrutura básica de fichamento, porém com ausência ou concisão excessiva da síntese dissertativa final."
+                    descontos.append("Síntese dissertativa: aprofunde a seção dissertativa final articulando a teoria da disciplina com as lições do texto.")
+                else:
+                    c1_parecer = "Estrutura com atendimento parcial aos blocos do modelo Fichamento.docx."
+                    descontos.append("Adequação ao modelo: certifique-se de manter e preencher integralmente todas as seções orientadoras do template.")
+            else:
+                nota_c1 = round(p_estrutural * 0.40, 2)
+                c1_parecer = "Entrega com lacunas estruturais significativas frente ao modelo oficial de Fichamento."
+                descontos.append("Lacunas estruturais: o documento não observou a divisão canônica e os blocos propostos no modelo de fichamento.")
+
+            # Critério 2: Preenchimento da Matriz e Resolução da Ficha de Leitura (0.75 pts)
+            if has_matriz and has_perguntas and ferramentas_count >= 3 and termos_er_count >= 3 and palavras >= 1000:
+                nota_c2 = p_resolucao
+                c2_parecer = "Desenvolvimento aprofundado dos tópicos centrais sobre Engenharia de Requisitos com fundamentação sólida no artigo de referência e exame das ferramentas de autoria."
+            elif has_matriz and has_perguntas and palavras >= 750:
+                nota_c2 = round(p_resolucao * 0.85, 2)
+                c2_parecer = "Resolução satisfatória dos itens da ficha de leitura e da matriz, embora algumas justificativas ou respostas pudessem receber maior detalhamento analítico."
+                descontos.append("Aprofundamento analítico nas respostas: expanda a argumentação crítica em torno da elicitação de requisitos e das conclusões dos autores.")
+            elif not has_matriz and has_perguntas:
+                nota_c2 = round(p_resolucao * 0.65, 2)
+                c2_parecer = "As questões de leitura do artigo foram respondidas, porém a omissão da matriz avaliativa comprometeu a dimensão analítico-quantitativa requerida pelo comando."
+                descontos.append("Avaliação das dimensões analíticas: a matriz avaliativa (0 a 4) é parte integrante do comando pedagógico para mensuração das dimensões do artigo.")
+            elif palavras >= 500:
+                nota_c2 = round(p_resolucao * 0.60, 2)
+                c2_parecer = "Desenvolvimento intermediário das questões, com respostas sucintas ou abordagem genérica frente aos dados do artigo."
+                descontos.append("Resolução concisa: desenvolva com maior riqueza de dados práticos a comparação das ferramentas de autoria e as limitações do artigo.")
+            else:
+                nota_c2 = round(p_resolucao * 0.40, 2)
+                c2_parecer = "Abordagem superficial das tarefas e questões requeridas no comando da atividade."
+                descontos.append("Abordagem superficial: os comandos centrais da atividade foram apenas tangenciados, necessitando de maior fundamentação analítica.")
+
+            # Critério 3: Rigor Conceitual, Coesão e Norma Culta (0.30 pts)
+            if palavras >= 80 and (conectivos_count >= 2 or termos_er_count >= 3):
+                nota_c3 = p_rigor
+                c3_parecer = "Vocabulário técnico apropriado, articulação fluida, coesa e em conformidade com a norma culta."
+            elif palavras >= 40:
+                nota_c3 = round(p_rigor * 0.65, 2)
+                c3_parecer = "Clareza expositiva adequada, com pequenas oportunidades de aprimoramento no vocabulário técnico e na coesão argumentativa."
+                descontos.append("Ajuste no rigor conceitual e redação: polir o uso dos termos técnicos e a articulação entre os parágrafos.")
+            else:
+                nota_c3 = round(p_rigor * 0.35, 2)
+                c3_parecer = "Texto com fragmentação argumentativa ou limitações na aplicação da norma padrão e terminologia técnica."
+                descontos.append("Fragilidade na articulação textual: utilize vocabulário técnico mais rigoroso e estruture com mais clareza os parágrafos.")
         else:
-            nota_c1 = round(p_estrutural * 0.40, 2)
-            c1_parecer = "Entrega com lacunas estruturais significativas frente às diretrizes propostas."
-            descontos.append("Lacunas estruturais: o documento não observou plenamente o formato ou extensão recomendada para a atividade.")
+            # Avaliação genérica para relatórios e projetos padrão
+            # Critério 1: Conformidade Estrutural
+            if total_arqs >= 1 and palavras >= 100:
+                nota_c1 = p_estrutural
+                c1_parecer = "Estrutura do trabalho adequada, com boa organização e atendimento às orientações de entrega."
+            elif total_arqs >= 1 and palavras >= 40:
+                nota_c1 = round(p_estrutural * 0.70, 2)
+                c1_parecer = "Estrutura básica apresentada, mas com desenvolvimento sucinto em relação à extensão esperada para a atividade."
+                descontos.append("Estrutura ou extensão concisa: aprofunde a organização e o detalhamento das seções do documento.")
+            else:
+                nota_c1 = round(p_estrutural * 0.40, 2)
+                c1_parecer = "Entrega com lacunas estruturais significativas frente às diretrizes propostas."
+                descontos.append("Lacunas estruturais: o documento não observou plenamente o formato ou extensão recomendada para a atividade.")
 
-        # Critério 2: Desenvolvimento Teórico-Prático e Resolução do Comando
-        meta_termos = max(2, min(len(rads_instrucoes) * 0.4, 6))
-        cobertura = min(1.0, max(0.0, len(intersecao) / meta_termos)) if meta_termos > 0 else 0.70
+            # Critério 2: Desenvolvimento Teórico-Prático e Resolução do Comando
+            meta_termos = max(2, min(len(rads_instrucoes) * 0.4, 6))
+            cobertura = min(1.0, max(0.0, len(intersecao) / meta_termos)) if meta_termos > 0 else 0.70
 
-        if cobertura >= 0.85:
-            nota_c2 = p_resolucao
-            c2_parecer = "Desenvolvimento consistente e aprofundado, atendendo com precisão aos comandos e desafios propostos nas instruções."
-        elif cobertura >= 0.50:
-            nota_c2 = round(p_resolucao * 0.70, 2)
-            c2_parecer = "Desenvolvimento satisfatório dos tópicos centrais, porém com abordagem parcial em determinados aspectos práticos ou analíticos do comando."
-            descontos.append("Resolução parcial do comando: determinados tópicos ou análises solicitadas nas instruções foram abordados de maneira introdutória.")
-        else:
-            nota_c2 = round(p_resolucao * 0.40, 2)
-            c2_parecer = "Abordagem superficial das tarefas e questões requeridas no comando da atividade."
-            descontos.append("Abordagem superficial: os comandos centrais da atividade foram apenas tangenciados, necessitando de maior fundamentação analítica.")
+            if cobertura >= 0.85:
+                nota_c2 = p_resolucao
+                c2_parecer = "Desenvolvimento consistente e aprofundado, atendendo com precisão aos comandos e desafios propostos nas instruções."
+            elif cobertura >= 0.50:
+                nota_c2 = round(p_resolucao * 0.70, 2)
+                c2_parecer = "Desenvolvimento satisfatório dos tópicos centrais, porém com abordagem parcial em determinados aspectos práticos ou analíticos do comando."
+                descontos.append("Resolução parcial do comando: determinados tópicos ou análises solicitadas nas instruções foram abordados de maneira introdutória.")
+            else:
+                nota_c2 = round(p_resolucao * 0.40, 2)
+                c2_parecer = "Abordagem superficial das tarefas e questões requeridas no comando da atividade."
+                descontos.append("Abordagem superficial: os comandos centrais da atividade foram apenas tangenciados, necessitando de maior fundamentação analítica.")
 
-        # Critério 3: Rigor Conceitual, Coesão e Norma Culta
-        conectivos = sum(1 for c in ["portanto", "contudo", "entretanto", "além disso", "nesse sentido", "assim sendo", "desta forma", "por conseguinte"] if c in texto_lower)
-        if palavras >= 80 and (conectivos >= 1 or cobertura >= 0.60):
-            nota_c3 = p_rigor
-            c3_parecer = "Vocabulário técnico apropriado, redação fluida, coesa e em conformidade com a norma culta."
-        elif palavras >= 40:
-            nota_c3 = round(p_rigor * 0.65, 2)
-            c3_parecer = "Clareza expositiva adequada, com pequenas oportunidades de aprimoramento no vocabulário técnico e na coesão argumentativa."
-            descontos.append("Ajuste no rigor conceitual e redação: polir o uso dos termos técnicos e a articulação entre os parágrafos.")
-        else:
-            nota_c3 = round(p_rigor * 0.35, 2)
-            c3_parecer = "Texto com fragmentação argumentativa ou limitações na aplicação da norma padrão e terminologia técnica."
-            descontos.append("Fragilidade na articulação textual: utilize vocabulário técnico mais rigoroso e estruture com mais clareza os parágrafos.")
+            # Critério 3: Rigor Conceitual, Coesão e Norma Culta
+            conectivos = sum(1 for c in ["portanto", "contudo", "entretanto", "além disso", "nesse sentido", "assim sendo", "desta forma", "por conseguinte"] if c in texto_lower)
+            if palavras >= 80 and (conectivos >= 1 or cobertura >= 0.60):
+                nota_c3 = p_rigor
+                c3_parecer = "Vocabulário técnico apropriado, redação fluida, coesa e em conformidade com a norma culta."
+            elif palavras >= 40:
+                nota_c3 = round(p_rigor * 0.65, 2)
+                c3_parecer = "Clareza expositiva adequada, com pequenas oportunidades de aprimoramento no vocabulário técnico e na coesão argumentativa."
+                descontos.append("Ajuste no rigor conceitual e redação: polir o uso dos termos técnicos e a articulação entre os parágrafos.")
+            else:
+                nota_c3 = round(p_rigor * 0.35, 2)
+                c3_parecer = "Texto com fragmentação argumentativa ou limitações na aplicação da norma padrão e terminologia técnica."
+                descontos.append("Fragilidade na articulação textual: utilize vocabulário técnico mais rigoroso e estruture com mais clareza os parágrafos.")
 
         # 5. Cálculo Final da Nota
         nota_total = round(nota_c1 + nota_c2 + nota_c3, 2)
@@ -259,7 +369,7 @@ class MotorAtividades:
         nota_str = f"{nota_total:.2f}".replace(".", ",")
         fb_parts = [
             "<p>Olá, {FirstName}!</p>",
-            f"<p>Sua entrega para a <strong>Atividade Aberta</strong> foi avaliada com a pontuação de <strong>{nota_str} de {nota_maxima:.2f} pontos</strong>.</p>",
+            f"<p>Sua entrega para a <strong>Atividade Aberta ({'Fichamento Acadêmico' if tipologia == 'FICHAMENTO' else ('Podcast' if tipologia == 'PODCAST' else 'Trabalho Prático')})</strong> foi avaliada com a pontuação de <strong>{nota_str} de {nota_maxima:.2f} pontos</strong>.</p>",
             "<p><strong>Análise Detalhada dos Critérios:</strong></p>",
             "<ul>",
             f"<li><strong>{c1_nome}:</strong> {c1_parecer}</li>",
@@ -284,6 +394,12 @@ class MotorAtividades:
         return {
             "nota": nota_total,
             "nota_max": nota_maxima,
+            "nota_c1": nota_c1,
+            "nota_c2": nota_c2,
+            "nota_c3": nota_c3,
+            "c1_parecer": c1_parecer,
+            "c2_parecer": c2_parecer,
+            "c3_parecer": c3_parecer,
             "qualidade": qualidade,
             "descontos": descontos_limpos,
             "feedback_html": feedback_html,
@@ -306,9 +422,10 @@ class MotorAtividades:
         nota_maxima = plano.get("atividade_aberta", {}).get("valor", 1.5)
         instrucoes = plano.get("atividade_aberta", {}).get("instrucoes", "")
 
-        # Gerar critérios analíticos pré-estabelecidos da atividade
-        criterios_info = self.gerar_criterios_atividade(instrucoes, nota_maxima)
-        state.log(f"[Atividade Aberta] Critérios definidos: Conformidade Estrutural ({criterios_info['peso_estrutural']:.2f} pts), Resolução do Comando ({criterios_info['peso_resolucao']:.2f} pts), Rigor Conceitual ({criterios_info['peso_rigor']:.2f} pts).")
+        # Gerar critérios analíticos pré-estabelecidos da atividade considerando templates e tipologia
+        modelos_plano = plano.get("atividade_aberta", {}).get("modelos_baixados", [])
+        criterios_info = self.gerar_criterios_atividade(instrucoes, nota_maxima, templates_nomes=modelos_plano)
+        state.log(f"[Atividade Aberta] Tipologia detectada: {criterios_info.get('tipologia', 'PADRAO')}. Critérios: {criterios_info['criterios'][0]['nome']} ({criterios_info['peso_estrutural']:.2f} pts), {criterios_info['criterios'][1]['nome']} ({criterios_info['peso_resolucao']:.2f} pts), {criterios_info['criterios'][2]['nome']} ({criterios_info['peso_rigor']:.2f} pts).")
 
         # 1. Obter link de entrada do plano mapeado pelo Quick Eval
         ativ_info = plano.get("atividade_aberta", {})
@@ -413,7 +530,7 @@ class MotorAtividades:
 
             # 3. Aguardar carregamento completo do painel de submissões
             tem_submissao = self._aguardar_carregamento_submissoes(page)
-            
+
             # Tenta sempre o download e extração de arquivos para garantir que nenhum anexo seja ignorado
             total_arqs, texto_submissoes = self._baixar_e_extrair_arquivos(page, temp_dir, aluno_idx)
 
@@ -430,7 +547,7 @@ class MotorAtividades:
 
             if sem_envio:
                 state.log(f"{pos_str}{nome_aluno}: Sem submissões na Atividade Aberta (-Nenhum texto inserido-).")
-                
+
                 # Verificar se já possui nota 0 ou comentário prévio
                 dados_atuais = obter_nota_e_feedback_consistent_evaluation(page)
                 nota_previa = dados_atuais.get("nota")
@@ -561,8 +678,8 @@ class MotorAtividades:
                     const cls = (el.className ? el.className.toString() : '').toLowerCase();
                     const tag = el.tagName.toLowerCase();
 
-                    if (aria.includes('baixar o anexo') || aria.includes('clique para baixar') || 
-                        href.includes('downloadattachment') || href.includes('download_submission_file') || 
+                    if (aria.includes('baixar o anexo') || aria.includes('clique para baixar') ||
+                        href.includes('downloadattachment') || href.includes('download_submission_file') ||
                         href.includes('viewfile') || href.includes('download') ||
                         cls.includes('attachment') || tag.includes('attachment') || tag === 'd2l-file-name') {
                         return true;
@@ -618,9 +735,9 @@ class MotorAtividades:
             if not carregando and elapsed >= min_wait:
                 sem_envio = page.evaluate("""() => {
                     const text = (document.body.innerText || '').toLowerCase();
-                    return text.includes('nenhum envio') || 
-                           text.includes('sem envios') || 
-                           text.includes('nenhum arquivo') || 
+                    return text.includes('nenhum envio') ||
+                           text.includes('sem envios') ||
+                           text.includes('nenhum arquivo') ||
                            text.includes('no submissions') ||
                            text.includes('não foram encontrados envios') ||
                            text.includes('não há envios para este');
@@ -659,10 +776,10 @@ class MotorAtividades:
                             try:
                                 with zipfile.ZipFile(zip_dest, 'r') as z:
                                     z.extractall(temp_dir)
-                                    for nome in z.namelist():
-                                        extraido = temp_dir / nome
-                                        if extraido.is_file():
-                                            arquivos_salvos.append(extraido)
+                                # Varre recursivamente todas as subpastas criadas pelo Brightspace no ZIP
+                                for extraido in temp_dir.rglob("*"):
+                                    if extraido.is_file() and not extraido.name.lower().endswith(('.zip', '.tar', '.gz', '.html', '.htm')):
+                                        arquivos_salvos.append(extraido)
                             except Exception:
                                 pass
                         break
@@ -690,9 +807,8 @@ class MotorAtividades:
                                 try:
                                     with zipfile.ZipFile(destino, 'r') as z:
                                         z.extractall(temp_dir)
-                                        for nome in z.namelist():
-                                            extraido = temp_dir / nome
-                                            if extraido.is_file():
+                                        for extraido in temp_dir.rglob("*"):
+                                            if extraido.is_file() and not extraido.name.lower().endswith(('.zip', '.tar', '.gz', '.html', '.htm')):
                                                 arquivos_salvos.append(extraido)
                                 except Exception:
                                     pass
@@ -721,14 +837,16 @@ class MotorAtividades:
                 pass
 
         # 4. Analisar detalhadamente o conteúdo de todos os arquivos descarregados
+        # Prioriza arquivos reais dos alunos (.doc, .docx, .pdf, .txt, etc.)
         for arq in arquivos_salvos:
-            if arq.is_file() and not arq.name.lower().endswith(('.zip', '.tar', '.gz')):
+            if arq.is_file() and not arq.name.lower().endswith(('.zip', '.tar', '.gz', '.html', '.htm')):
                 if arq.name in nomes_arquivos:
                     continue
                 nomes_arquivos.add(arq.name)
                 res = extrair_texto_documento(arq)
-                if res["sucesso"] and res["texto"]:
-                    textos.append(res["texto"])
+                if res["sucesso"] and res["texto"] and len(res["texto"].strip()) > 10:
+                    bloco_texto = f"=== ARQUIVO: {arq.name} ===\n{res['texto'].strip()}"
+                    textos.append(bloco_texto)
 
         # 5. Rota D: Complemento / Fallback com leitura da camada de texto do Document Viewer na tela
         try:

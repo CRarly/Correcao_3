@@ -20,7 +20,7 @@ from core.dom_helpers import salvar_rascunho_consistent_evaluation, salvar_rascu
 class MotorDiscursivas:
     """
     Módulo Universal e Especialista de Correção de Provas Discursivas.
-    
+
     Assimila o ciclo completo em 4 passos:
     1. Ver Enunciado: Inspeciona a turma apontada e extrai dinamicamente o código, valor e enunciado da questão discursiva.
     2. Criar Critérios: Decompõe o enunciado em matriz de critérios analíticos (domínio conceitual, aplicação prática, norma culta).
@@ -40,19 +40,22 @@ class MotorDiscursivas:
     # =========================================================================
     # PASSO 1: VER ENUNCIADO (Mapeamento Universal da Questão Discursiva)
     # =========================================================================
-    def inspecionar_questao_discursiva(self, page: Page, ou: str | int, nome_disciplina: str = "") -> Dict[str, Any]:
+    def inspecionar_questao_discursiva(self, page: Page, ou: str | int, nome_disciplina: str = "", tipo_prova: str = "presencial") -> Dict[str, Any]:
         """
-        Localiza a prova presencial da turma apontada de forma 100% genérica via
+        Localiza a prova (presencial ou substitutiva) da turma apontada de forma 100% genérica via
         quizzes_manage -> quiz_mark_users -> Consistent Evaluation.
         Extrai o código da questão, pontuação máxima, enunciado completo e o Padrão de Resposta oficial.
         """
-        state.log(f"[Novo Motor de Correção] Inspecionando questão discursiva da turma [{ou}] {nome_disciplina}...")
+        is_sub = str(tipo_prova).lower() == "substitutiva"
+        nome_prova_alvo = "Avaliação: Prova substitutiva" if is_sub else "Avaliação: Prova presencial"
+        state.log(f"[Novo Motor de Correção] Inspecionando questão discursiva da {nome_prova_alvo} na turma [{ou}] {nome_disciplina}...")
         url_quizzes = get_quizzes_url(ou)
-        
+
         info = {
             "ou": str(ou),
             "disciplina": nome_disciplina,
-            "prova_nome": "Avaliação: Prova presencial",
+            "prova_nome": nome_prova_alvo,
+            "tipo_prova": "substitutiva" if is_sub else "presencial",
             "qi": "",
             "codigo_questao": "",
             "valor_maximo": 2.0,
@@ -64,46 +67,60 @@ class MotorDiscursivas:
         }
 
         try:
-            # 1. Acessar Gerenciar Questionários para obter qi da Prova Presencial
+            # 1. Acessar Gerenciar Questionários para obter qi da Prova
             page.goto(url_quizzes, wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
             time.sleep(3)
 
-            dados_quiz = page.evaluate(r"""() => {
+            dados_quiz = page.evaluate(r"""(isSub) => {
                 const rows = Array.from(document.querySelectorAll('tr, table tr'));
-                // 1. Prioridade máxima: 'Prova presencial' ou 'Avaliação final' que NÃO contenha substitutiva nem recuperação
-                for (let r of rows) {
-                    const txt = (r.innerText || '').toLowerCase();
-                    if ((txt.includes('prova presencial') || txt.includes('avaliação final') || txt.includes('avaliacao final')) && !txt.includes('substitutiva') && !txt.includes('recupera') && !txt.includes('qme')) {
-                        const a = r.querySelector('a[href*="quiz_newedit_properties"], a[href*="qi="]');
-                        if (a) {
-                            const m = a.href.match(/qi=(\d+)/i);
-                            return { title: a.innerText.trim(), href: a.href, qi: m ? m[1] : null };
+                if (isSub) {
+                    // Prioridade Substitutiva / Recuperação
+                    for (let r of rows) {
+                        const txt = (r.innerText || '').toLowerCase();
+                        if ((txt.includes('substitutiva') || txt.includes('recupera') || txt.includes('prorec')) && !txt.includes('qme')) {
+                            const a = r.querySelector('a[href*="quiz_newedit_properties"], a[href*="qi="]');
+                            if (a) {
+                                const m = a.href.match(/qi=(\d+)/i);
+                                return { title: a.innerText.trim(), href: a.href, qi: m ? m[1] : null };
+                            }
                         }
                     }
-                }
-                // 2. Segunda opção: 'Prova' genérica sem substitutiva
-                for (let r of rows) {
-                    const txt = (r.innerText || '').toLowerCase();
-                    if (txt.includes('prova') && !txt.includes('substitutiva') && !txt.includes('recupera') && !txt.includes('qme')) {
-                        const a = r.querySelector('a[href*="quiz_newedit_properties"], a[href*="qi="]');
-                        if (a) {
-                            const m = a.href.match(/qi=(\d+)/i);
-                            return { title: a.innerText.trim(), href: a.href, qi: m ? m[1] : null };
+                } else {
+                    // 1. Prioridade máxima: 'Prova presencial' ou 'Avaliação final' que NÃO contenha substitutiva nem recuperação
+                    for (let r of rows) {
+                        const txt = (r.innerText || '').toLowerCase();
+                        if ((txt.includes('prova presencial') || txt.includes('avaliação final') || txt.includes('avaliacao final')) && !txt.includes('substitutiva') && !txt.includes('recupera') && !txt.includes('qme')) {
+                            const a = r.querySelector('a[href*="quiz_newedit_properties"], a[href*="qi="]');
+                            if (a) {
+                                const m = a.href.match(/qi=(\d+)/i);
+                                return { title: a.innerText.trim(), href: a.href, qi: m ? m[1] : null };
+                            }
+                        }
+                    }
+                    // 2. Segunda opção: 'Prova' genérica sem substitutiva
+                    for (let r of rows) {
+                        const txt = (r.innerText || '').toLowerCase();
+                        if (txt.includes('prova') && !txt.includes('substitutiva') && !txt.includes('recupera') && !txt.includes('qme')) {
+                            const a = r.querySelector('a[href*="quiz_newedit_properties"], a[href*="qi="]');
+                            if (a) {
+                                const m = a.href.match(/qi=(\d+)/i);
+                                return { title: a.innerText.trim(), href: a.href, qi: m ? m[1] : null };
+                            }
                         }
                     }
                 }
                 return null;
-            }""")
+            }""", is_sub)
 
             if not dados_quiz or not dados_quiz.get("qi"):
-                state.log("[Discursivas] Prova Presencial não localizada em Questionários. Tentando via Quick Eval...", "WARN")
-                return self._inspecionar_via_quickeval(page, ou, info)
+                state.log(f"[Discursivas] {nome_prova_alvo} não localizada em Questionários. Tentando via Quick Eval...", "WARN")
+                return self._inspecionar_via_quickeval(page, ou, info, tipo_prova=tipo_prova)
 
             qi = dados_quiz["qi"]
             self.qi_atual = qi
             info["qi"] = qi
             info["prova_nome"] = dados_quiz["title"]
-            state.log(f"[Discursivas] Prova Presencial identificada: '{info['prova_nome']}' (QI: {qi})")
+            state.log(f"[Discursivas] Prova identificada: '{info['prova_nome']}' (QI: {qi})")
 
             # 2. Navegar diretamente para quiz_mark_users
             url_mark = f"https://ava.catolica.edu.br/d2l/lms/quizzing/admin/mark/quiz_mark_users.d2l?qi={qi}&ou={ou}"
@@ -230,8 +247,9 @@ class MotorDiscursivas:
         state.log(f"[Discursivas] Enunciado mapeado com sucesso ({len(self.enunciado_atual)} caracteres). Código: {self.codigo_questao_atual} | Valor: {self.valor_max_atual} pts.")
         return info
 
-    def _inspecionar_via_quickeval(self, page: Page, ou: str | int, info: Dict[str, Any]) -> Dict[str, Any]:
+    def _inspecionar_via_quickeval(self, page: Page, ou: str | int, info: Dict[str, Any], tipo_prova: str = "presencial") -> Dict[str, Any]:
         """Extrai enunciado diretamente do Consistent Evaluation na primeira tentativa da turma."""
+        is_sub = str(tipo_prova).lower() == "substitutiva"
         url_qe = f"{get_quickeval_url(ou)}"
         state.log(f"[Discursivas] Extraindo enunciado via Consistent Evaluation: {url_qe}")
         try:
@@ -246,17 +264,23 @@ class MotorDiscursivas:
             }""")
             time.sleep(3)
 
-            # Abrir link da prova presencial
-            link_prova = page.evaluate(r"""() => {
+            # Abrir link da prova (presencial ou substitutiva)
+            link_prova = page.evaluate(r"""(isSub) => {
                 const links = Array.from(document.querySelectorAll('a[href*="evaluation/activity"]'));
                 for (let a of links) {
                     const txt = (a.innerText || '').toLowerCase();
-                    if (txt.includes('prova') || txt.includes('presencial')) {
-                        return a.href;
+                    if (isSub) {
+                        if (txt.includes('substitutiva') || txt.includes('recupera') || txt.includes('prorec')) {
+                            return a.href;
+                        }
+                    } else {
+                        if ((txt.includes('prova') || txt.includes('presencial')) && !txt.includes('substitutiva') && !txt.includes('recupera')) {
+                            return a.href;
+                        }
                     }
                 }
                 return links.length > 0 ? links[0].href : null;
-            }""")
+            }""", is_sub)
 
             if link_prova:
                 page.goto(link_prova, wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
@@ -319,7 +343,7 @@ class MotorDiscursivas:
         enun_lower = (enunciado or "").lower()
         exige_exemplos = any(k in enun_lower for k in ["exemplo", "exemplos", "aplicaç", "sistemas estudados", "casos"])
         exige_proprias_palavras = "suas palavras" in enun_lower or "próprias palavras" in enun_lower
-        
+
         # Ponderação dos 3 pilares
         peso_conceitual = round(valor_maximo * 0.35, 2)   # ex: 0.70 pts em 2.0
         peso_pratico = round(valor_maximo * 0.40, 2)       # ex: 0.80 pts em 2.0
@@ -374,7 +398,7 @@ class MotorDiscursivas:
         servindo como parâmetro de referência pedagógica para a correção da turma.
         """
         enun_clean = re.sub(r"\s+", " ", enunciado).strip()
-        
+
         # Padrão contextual baseado no comando
         exemplo = (
             f"PADRÃO DE RESPOSTA ESPERADO (GABARITO COMENTADO):\n\n"
@@ -389,7 +413,7 @@ class MotorDiscursivas:
             f"O texto deve ser redigido com as próprias palavras do estudante, articulando raciocínio coeso, fluidez argumentativa "
             f"e conformidade com a norma culta da língua portuguesa, sem cópia literal de fontes externas ou enunciados."
         )
-        
+
         self.resposta_esperada_atual = exemplo
         return exemplo
 
@@ -405,7 +429,8 @@ class MotorDiscursivas:
         valor_maximo: float = 2.0,
         docente: str = "Prof. Avaliador",
         ou: str | int = "",
-        disciplina: str = ""
+        disciplina: str = "",
+        tipo_prova: str = "presencial"
     ) -> Dict[str, Any]:
         """
         Avalia a resposta do aluno com base na rubrica de critérios, verifica plágio (>=90%),
@@ -538,10 +563,11 @@ class MotorDiscursivas:
         nota_total = round(nota_total * 20) / 20
         nota_total = min(valor_maximo, max(0.0, nota_total))
 
+        nome_prova_label = "Prova Substitutiva" if str(tipo_prova).lower() == "substitutiva" else "Prova Presencial"
         if nota_total == 0.0:
             desconto_insuf = "A resposta apresentada não atingiu o desenvolvimento mínimo exigido para atendimento aos critérios da questão."
             feedback_html = (
-                f"<p>Sua resposta para a Questão Discursiva da Prova Presencial foi avaliada com a pontuação de <strong>0,00 de {valor_maximo:.2f} pontos</strong>.</p>"
+                f"<p>Sua resposta para a Questão Discursiva da {nome_prova_label} foi avaliada com a pontuação de <strong>0,00 de {valor_maximo:.2f} pontos</strong>.</p>"
                 f"<p><strong>Motivos do não atingimento da totalidade da nota:</strong></p>"
                 f"<ul><li>{desconto_insuf}</li></ul>"
                 f"<p>Continue empenhado(a) em articular os conceitos teóricos aos desafios práticos da disciplina. Conte com o apoio docente!</p>"
@@ -604,7 +630,7 @@ class MotorDiscursivas:
         # 5. Formatar Feedback HTML no padrão solicitado
         nota_str = f"{nota_total:.2f}".replace(".", ",")
         fb_parts = [
-            f"<p>Sua resposta para a Questão Discursiva da Prova Presencial foi avaliada com a pontuação de <strong>{nota_str} de {valor_maximo:.2f} pontos</strong>.</p>",
+            f"<p>Sua resposta para a Questão Discursiva da {nome_prova_label} foi avaliada com a pontuação de <strong>{nota_str} de {valor_maximo:.2f} pontos</strong>.</p>",
             "<p><strong>Análise Detalhada dos Critérios:</strong></p>",
             "<ul>",
             f"<li><strong>{c1_nome}:</strong> {c1_parecer}</li>",
@@ -649,13 +675,16 @@ class MotorDiscursivas:
         modo: str = "tradicional",
         docente: str = "Prof. Avaliador",
         enunciado_override: str = "",
-        valor_maximo_override: float = 0.0
+        valor_maximo_override: float = 0.0,
+        tipo_prova: str = "presencial"
     ) -> List[Dict[str, Any]]:
         """
-        Executa o ciclo de avaliação de todos os estudantes da turma na Prova Presencial (Discursiva).
+        Executa o ciclo de avaliação de todos os estudantes da turma na Prova Presencial ou Substitutiva (Discursiva).
         Lança nota e feedback no editor da questão, salva em rascunho duas vezes e audita coerência ao final.
         """
-        state.log(f"[Novo Motor de Correção] Iniciando avaliação da turma [{ou}] {disciplina} (Modo: {modo.upper()})...")
+        is_sub = str(tipo_prova).lower() == "substitutiva"
+        nome_prova_alvo = "Avaliação: Prova substitutiva" if is_sub else "Avaliação: Prova presencial"
+        state.log(f"[Novo Motor de Correção] Iniciando avaliação da turma [{ou}] {disciplina} ({nome_prova_alvo} - Modo: {modo.upper()})...")
         resultados = []
 
         # 1. Pré-inspeção do enunciado se necessário
@@ -665,7 +694,7 @@ class MotorDiscursivas:
                 self.valor_max_atual = valor_maximo_override or 2.0
                 self.gerar_criterios_avaliacao(self.enunciado_atual, self.valor_max_atual)
             else:
-                self.inspecionar_questao_discursiva(page, ou, disciplina)
+                self.inspecionar_questao_discursiva(page, ou, disciplina, tipo_prova=tipo_prova)
                 self.gerar_criterios_avaliacao(self.enunciado_atual, self.valor_max_atual)
 
         enunciado = self.enunciado_atual
@@ -685,38 +714,54 @@ class MotorDiscursivas:
         }""")
         time.sleep(3)
 
-        link_prova = page.evaluate(r"""() => {
+        link_prova = page.evaluate(r"""(isSub) => {
             const links = Array.from(document.querySelectorAll('a[href*="evaluation/activity"]'));
             for (let a of links) {
                 const txt = (a.innerText || '').toLowerCase();
-                if (txt.includes('prova') || txt.includes('presencial')) {
-                    return a.href;
+                if (isSub) {
+                    if (txt.includes('substitutiva') || txt.includes('recupera') || txt.includes('prorec')) {
+                        return a.href;
+                    }
+                } else {
+                    if ((txt.includes('prova') || txt.includes('presencial')) && !txt.includes('substitutiva') && !txt.includes('recupera')) {
+                        return a.href;
+                    }
                 }
             }
             return links.length > 0 ? links[0].href : null;
-        }""")
+        }""", is_sub)
 
         if not link_prova:
-            state.log(f"[Discursivas] Prova não listada no Quick Eval de {ou}. Tentando geração determinística de Activity ID...", "WARN")
+            state.log(f"[Discursivas] {nome_prova_alvo} não listada no Quick Eval de {ou}. Tentando geração determinística de Activity ID...", "WARN")
             qi = self.qi_atual
             if not qi:
                 # Obter qi em quizzes_manage
                 page.goto(get_quizzes_url(ou), wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
                 time.sleep(2.5)
-                qi = page.evaluate(r"""() => {
+                qi = page.evaluate(r"""(isSub) => {
                     const rows = Array.from(document.querySelectorAll('tr, table tr'));
                     for (let r of rows) {
                         const txt = (r.innerText || '').toLowerCase();
-                        if ((txt.includes('prova presencial') || txt.includes('prova') || txt.includes('avaliação')) && !txt.includes('substitutiva') && !txt.includes('recupera') && !txt.includes('qme')) {
-                            const a = r.querySelector('a[href*="quiz_newedit_properties"], a[href*="qi="]');
-                            if (a) {
-                                const m = a.href.match(/qi=(\d+)/i);
-                                if (m) return m[1];
+                        if (isSub) {
+                            if ((txt.includes('substitutiva') || txt.includes('recupera') || txt.includes('prorec')) && !txt.includes('qme')) {
+                                const a = r.querySelector('a[href*="quiz_newedit_properties"], a[href*="qi="]');
+                                if (a) {
+                                    const m = a.href.match(/qi=(\d+)/i);
+                                    if (m) return m[1];
+                                }
+                            }
+                        } else {
+                            if ((txt.includes('prova presencial') || txt.includes('prova') || txt.includes('avaliação')) && !txt.includes('substitutiva') && !txt.includes('recupera') && !txt.includes('qme')) {
+                                const a = r.querySelector('a[href*="quiz_newedit_properties"], a[href*="qi="]');
+                                if (a) {
+                                    const m = a.href.match(/qi=(\d+)/i);
+                                    if (m) return m[1];
+                                }
                             }
                         }
                     }
                     return null;
-                }""")
+                }""", is_sub)
             if qi:
                 self.qi_atual = qi
                 inner = base64.b64encode(f"6606_51000_{qi}".encode()).decode().rstrip("=")
@@ -761,7 +806,7 @@ class MotorDiscursivas:
 
             alunos_processados.add(chave_aluno)
             total_est = pos_info.get("total") or 10
-            state.update_progress(pos_info.get("atual") or aluno_idx, total_est, nome_aluno, "Prova Presencial (Discursiva)")
+            state.update_progress(pos_info.get("atual") or aluno_idx, total_est, nome_aluno, f"{nome_prova_alvo} (Discursiva)")
 
             # Assegurar seleção da tentativa correta
             self._assegurar_tentativa_1(page)
@@ -790,7 +835,8 @@ class MotorDiscursivas:
                 valor_maximo=valor_max,
                 docente=docente,
                 ou=ou,
-                disciplina=disciplina
+                disciplina=disciplina,
+                tipo_prova=tipo_prova
             )
 
             nota_final = diag["nota"]
@@ -811,7 +857,7 @@ class MotorDiscursivas:
             registro = {
                 "ou": str(ou),
                 "disciplina": disciplina,
-                "atividade": "Prova presencial",
+                "atividade": nome_prova_alvo,
                 "aluno": nome_aluno,
                 "nota": nota_final,
                 "nota_max": valor_max,
@@ -851,7 +897,7 @@ class MotorDiscursivas:
                     return res;
                 }
                 const all = getAll(document.body);
-                
+
                 // 1. Localizar o elemento <select> de tentativas (inclusive dentro de Shadow DOM)
                 const selects = all.filter(el => {
                     if (el.tagName.toLowerCase() !== 'select') return false;
@@ -863,7 +909,7 @@ class MotorDiscursivas:
                 for (let sel of selects) {
                     const val = sel.value || '';
                     const curText = sel.options && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text.toLowerCase() : '';
-                    
+
                     // Se estiver em Resumo da conclusão, selecionar a Tentativa 1
                     if (val === 'completion-summary' || curText.includes('resumo') || curText.includes('summary')) {
                         for (let i = 0; i < sel.options.length; i++) {

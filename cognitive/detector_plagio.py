@@ -23,16 +23,15 @@ def extrair_ngrams(tokens: List[str], n: int = 4) -> set:
 from pathlib import Path
 from config import RELATORIOS_DIR
 
-MODULO_PLAGIO_ATIVO = False  # Desativado temporariamente a pedido do usuário
-
 class DetectorPlagio:
     """
     Detector de similaridade e plágio cruzado entre submissões de estudantes.
     Mapeia turmas e atividades, detectando cópias diretas e paráfrases.
-    Status atual: DESATIVADO TEMPORARIAMENTE conforme solicitação.
+    Regra estrita: Considera plágio apenas similaridades a partir de 90.0%.
+    Ignora nomes de arquivo e compara exclusivamente o conteúdo textual extraído.
+    Gera relatório detalhado de comparação lado a lado para submissões suspeitas.
     """
-    def __init__(self, limiar_alerta: float = 0.90, limiar_critico: float = 0.90, ativo: bool = False):
-        self.ativo = False  # Desativado temporariamente
+    def __init__(self, limiar_alerta: float = 0.90, limiar_critico: float = 0.90):
         self.limiar_alerta = limiar_alerta
         self.limiar_critico = limiar_critico
         # Estrutura: { f"{ou}_{atividade}": [ { "aluno": str, "texto_original": str, "texto_norm": str, "tokens": list, "timestamp": str, "ordem": int }, ... ] }
@@ -56,19 +55,9 @@ class DetectorPlagio:
     ) -> Dict[str, Any]:
         """
         Registra a submissão e compara com todas as anteriores da mesma turma e atividade.
-        Regra: Módulo temporariamente desativado a pedido do usuário (retorna sem plágio).
+        Regra: Apenas >= 90% é considerado plágio. Nome de arquivo é ignorado (só conteúdo).
+        Gera comparação direta lado a lado para casos suspeitos/plagiados.
         """
-        if not self.ativo or not MODULO_PLAGIO_ATIVO:
-            return {
-                "tem_plagio": False,
-                "similaridade_pct": 0.0,
-                "aluno_autor": None,
-                "aluno_copiador": aluno_nome,
-                "trechos_copiados": [],
-                "relatorio_comparacao": None,
-                "diagnostico": "Módulo de detecção de plágio desativado temporariamente."
-            }
-
         chave = f"{ou}_{atividade}"
         if chave not in self.banco_submissoes:
             self.banco_submissoes[chave] = []
@@ -76,7 +65,7 @@ class DetectorPlagio:
         submissoes_turma = self.banco_submissoes[chave]
         texto_norm = normalizar_texto(texto_submissao)
         tokens = texto_norm.split()
-        
+
         # Ignorar submissões vazias ou minúsculas (menos de 15 palavras)
         if len(tokens) < 15:
             self.banco_submissoes[chave].append({
@@ -98,7 +87,7 @@ class DetectorPlagio:
             }
 
         ngrams_atual = extrair_ngrams(tokens, n=4)
-        
+
         maior_similaridade = 0.0
         aluno_similar = None
         texto_similar = ""
@@ -107,15 +96,15 @@ class DetectorPlagio:
         for sub in submissoes_turma:
             if sub["aluno"].strip().lower() == aluno_nome.strip().lower():
                 continue # Não comparar com ele mesmo
-            
+
             ngrams_outro = extrair_ngrams(sub["tokens"], n=4)
             uniao = len(ngrams_atual | ngrams_outro)
             if uniao == 0:
                 continue
-            
+
             # Similaridade de Jaccard dos 4-gramas
             jaccard = len(ngrams_atual & ngrams_outro) / uniao
-            
+
             # Verificação com difflib se Jaccard indicar relevância
             if jaccard > 0.35:
                 matcher = difflib.SequenceMatcher(None, texto_norm, sub["texto_norm"])
@@ -270,5 +259,3 @@ class DetectorPlagio:
         return [p for p in self.ocorrencias_plagio if p["ou"] == str(ou)]
 
 detector_plagio = DetectorPlagio()
-
-

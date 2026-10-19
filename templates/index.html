@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brightspace Grader 2.0 | Motor Especialista de Avaliação</title>
+    <title>Brightspace Grader 3.0 | Motor Especialista de Avaliação</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
@@ -42,7 +42,7 @@
             </div>
             <div>
                 <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                    Brightspace Grader <span class="text-xs bg-brand-600/30 text-brand-400 border border-brand-500/40 px-2 py-0.5 rounded-full font-semibold">v2.0 Especialista</span>
+                    Brightspace Grader <span class="text-xs bg-brand-600/30 text-brand-400 border border-brand-500/40 px-2 py-0.5 rounded-full font-semibold">v3.0 Especialista</span>
                 </h1>
                 <p class="text-xs text-slate-400">Motor Pedagógico Elevado, Auditoria e Anti-Plágio</p>
             </div>
@@ -56,6 +56,10 @@
             <button id="tab-btn-discursivas" onclick="trocarAba('discursivas')" class="px-4 py-2 text-sm font-medium rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-2">
                 <i class="fa-solid fa-feather-pointed text-amber-400"></i> Provas Discursivas
                 <span class="text-[10px] font-bold bg-gradient-to-r from-amber-500 to-brand-500 text-white px-2 py-0.5 rounded-full shadow-sm shadow-amber-500/30 uppercase tracking-wider">[Novo Motor de Correção]</span>
+            </button>
+            <button id="tab-btn-atividades" onclick="trocarAba('atividades')" class="px-4 py-2 text-sm font-medium rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-2">
+                <i class="fa-solid fa-file-circle-check text-sky-400"></i> Atividades Abertas
+                <span class="text-[10px] font-bold bg-gradient-to-r from-sky-500 to-brand-500 text-white px-2 py-0.5 rounded-full shadow-sm shadow-sky-500/30 uppercase tracking-wider">[Novo Motor de Correção]</span>
             </button>
             <button id="tab-btn-relatorios" onclick="trocarAba('relatorios')" class="px-4 py-2 text-sm font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 flex items-center gap-2">
                 <i class="fa-solid fa-chart-pie"></i> Explorador de Relatórios
@@ -73,15 +77,15 @@
 
     <!-- Conteúdo Principal -->
     <main class="flex-1 overflow-y-auto custom-scroll p-6 bg-slate-950">
-        
+
         <!-- ======================================================== -->
         <!-- ABA 1: PAINEL DE OPERAÇÕES -->
         <!-- ======================================================== -->
         <div id="view-operacoes" class="space-y-6 max-w-7xl mx-auto">
-            
+
             <!-- Linha Superior: Configuração e Turmas -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
+
                 <!-- Card 1: Credenciais e Conexão -->
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
                     <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
@@ -139,7 +143,7 @@
                     <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                         <i class="fa-solid fa-bullseye text-brand-500"></i> Escopo & Modo
                     </h2>
-                    
+
                     <!-- Atividades -->
                     <div class="space-y-2">
                         <label class="block text-xs font-medium text-slate-400">Atividades a Avaliar:</label>
@@ -151,12 +155,15 @@
                                 </span>
                                 <span class="ml-auto text-[10px] text-slate-500 font-mono">1.0 ou 2.5 pts</span>
                             </label>
-                            <label class="flex items-center gap-2 p-2 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700 transition">
-                                <input id="chk-ativ-aberta" type="checkbox" checked class="rounded text-brand-600 focus:ring-brand-500">
-                                <span class="font-medium text-slate-200 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-file-arrow-up text-brand-400"></i> Atividade Aberta
+                            <label class="flex items-center gap-2 p-2 bg-sky-950/20 rounded-xl border border-sky-800/40 hover:border-sky-600/60 cursor-pointer transition">
+                                <input id="chk-ativ-aberta" type="checkbox" checked class="rounded text-sky-500 focus:ring-sky-400">
+                                <span class="font-bold text-white flex items-center gap-1.5">
+                                    <i class="fa-solid fa-file-circle-check text-sky-400"></i> Atividade Aberta
                                 </span>
-                                <span class="ml-auto text-[10px] text-slate-500 font-mono">1.5 pts</span>
+                                <span class="ml-auto flex items-center gap-2">
+                                    <span class="text-[10px] font-extrabold bg-sky-500/20 text-sky-300 border border-sky-500/50 px-2 py-0.5 rounded uppercase tracking-wider">[NOVO MOTOR]</span>
+                                    <span class="text-[10px] text-slate-400 font-mono">1.5 pts</span>
+                                </span>
                             </label>
                             <label class="flex items-center gap-2 p-2 bg-amber-950/20 rounded-xl border-2 border-amber-500/60 cursor-pointer hover:border-amber-400 transition shadow-sm shadow-amber-500/10">
                                 <input id="chk-ativ-prova" type="checkbox" checked class="rounded text-amber-500 focus:ring-amber-400">
@@ -165,6 +172,16 @@
                                 </span>
                                 <span class="ml-auto flex items-center gap-2">
                                     <span class="text-[10px] font-extrabold bg-amber-500 text-slate-950 px-2 py-0.5 rounded uppercase tracking-wider animate-pulse">[NOVO MOTOR DE CORREÇÃO]</span>
+                                    <span class="text-[10px] text-slate-400 font-mono">Até 2.0 pts</span>
+                                </span>
+                            </label>
+                            <label class="flex items-center gap-2.5 p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 cursor-pointer text-xs">
+                                <input type="checkbox" id="chk-ativ-substitutiva" class="rounded text-brand-600 focus:ring-brand-500 bg-slate-900 border-slate-700">
+                                <span class="font-bold text-white flex items-center gap-1.5">
+                                    <i class="fa-solid fa-graduation-cap text-purple-400"></i> Prova Substitutiva (Discursiva)
+                                </span>
+                                <span class="ml-auto flex items-center gap-2">
+                                    <span class="text-[10px] font-extrabold bg-purple-500/20 text-purple-300 border border-purple-500/50 px-2 py-0.5 rounded uppercase tracking-wider">[SUBSTITUTIVA]</span>
                                     <span class="text-[10px] text-slate-400 font-mono">Até 2.0 pts</span>
                                 </span>
                             </label>
@@ -204,7 +221,7 @@
                     <span id="apoio-regra-badge" class="px-2.5 py-1 text-xs rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800 font-semibold"></span>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
                     <!-- Fórum -->
                     <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
                         <div class="flex justify-between items-center text-slate-300 font-semibold">
@@ -238,6 +255,17 @@
                         <div class="text-[11px] text-slate-400 space-y-1">
                             <div><strong class="text-slate-300">Questão Discursiva:</strong> Avaliação em 4 passos analíticos com Duplo Rascunho.</div>
                             <div class="mt-2 bg-slate-900 p-2 rounded max-h-24 overflow-y-auto custom-scroll text-slate-400 italic" id="apoio-prova-enun"></div>
+                        </div>
+                    </div>
+                    <!-- Prova Substitutiva -->
+                    <div class="bg-slate-950 border border-purple-500/30 rounded-xl p-3 space-y-2">
+                        <div class="flex justify-between items-center text-slate-300 font-semibold">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-graduation-cap text-purple-400"></i> Prova Substitutiva</span>
+                            <span id="apoio-sub-pts" class="text-purple-400 font-bold">2.0 pts</span>
+                        </div>
+                        <div class="text-[11px] text-slate-400 space-y-1">
+                            <div><strong class="text-slate-300">Questão Discursiva:</strong> Código EAD_EdS_2026_3_PROREC_QDIS</div>
+                            <div class="mt-2 bg-slate-900 p-2 rounded max-h-24 overflow-y-auto custom-scroll text-slate-400 italic" id="apoio-sub-enun">Discursiva Substitutiva mapeada.</div>
                         </div>
                     </div>
                 </div>
@@ -292,7 +320,7 @@
                 </div>
 
                 <div id="terminal-logs" class="bg-slate-950 border border-slate-800/80 rounded-xl p-4 font-mono text-xs text-slate-300 h-64 overflow-y-auto custom-scroll space-y-1">
-                    <p class="text-slate-500">[Sistema] Brightspace Grader 2.0 pronto para execução.</p>
+                    <p class="text-slate-500">[Sistema] Brightspace Grader 3.0 pronto para execução.</p>
                 </div>
             </div>
 
@@ -302,7 +330,7 @@
         <!-- ABA 2: MÓDULO ESPECIALISTA DE PROVAS DISCURSIVAS -->
         <!-- ======================================================== -->
         <div id="view-discursivas" class="hidden space-y-6 max-w-7xl mx-auto">
-            
+
             <!-- Linha 1: Seleção e Apontamento da Turma -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
@@ -323,15 +351,22 @@
                 </div>
 
                 <!-- Formulário de Apontamento da Turma -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
                     <div>
-                        <label class="block text-slate-400 font-medium mb-1">Selecionar Turma Mapeada:</label>
-                        <select id="disc-sel-turma" onchange="selecionarTurmaDiscursiva(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
-                            <option value="">-- Escolha uma turma mapeada --</option>
+                        <label class="block text-slate-400 font-medium mb-1">Tipo de Prova:</label>
+                        <select id="disc-sel-tipo-prova" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 font-semibold focus:outline-none focus:border-brand-500">
+                            <option value="presencial">Prova Presencial (Discursiva)</option>
+                            <option value="substitutiva">Prova Substitutiva (Discursiva)</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-slate-400 font-medium mb-1">Código OU da Turma:</label>
+                        <label class="block text-slate-400 font-medium mb-1">Selecionar Turma:</label>
+                        <select id="disc-sel-turma" onchange="selecionarTurmaDiscursiva(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+                            <option value="">-- Escolha uma turma --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Código OU:</label>
                         <input id="disc-inp-ou" type="text" placeholder="Ex: 155399" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-brand-500">
                     </div>
                     <div>
@@ -394,7 +429,7 @@
 
             <!-- Passo 2 & Passo 3: Critérios Analíticos e Gabarito de Referência -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
+
                 <!-- Passo 2: Matriz Pedagógica de Critérios -->
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
                     <div class="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -553,10 +588,267 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
         </div>
 
         <!-- ======================================================== -->
+        <!-- ABA: NOVO MÓDULO ESPECIALISTA DE ATIVIDADES ABERTAS -->
+        <!-- ======================================================== -->
+        <div id="view-atividades" class="hidden space-y-6 max-w-7xl mx-auto">
+
+            <!-- Linha 1: Seleção e Apontamento da Turma -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-file-circle-check text-sky-400"></i> Atividades Abertas &amp; Trabalhos Práticos
+                            <span class="text-xs font-extrabold bg-gradient-to-r from-sky-500 to-brand-500 text-white px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-md shadow-sky-500/30">[NOVO MOTOR DE CORREÇÃO]</span>
+                        </h2>
+                        <p class="text-xs text-slate-400">
+                            Ciclo pedagógico completo em 4 passos: <strong class="text-sky-300">1. Inspecionar Comando</strong> &rarr; <strong class="text-sky-300">2. Matriz de Critérios</strong> &rarr; <strong class="text-sky-300">3. Gabarito de Referência</strong> &rarr; <strong class="text-sky-300">4. Avaliar &amp; Auditar</strong>.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 text-xs rounded-full bg-sky-950/60 text-sky-400 border border-sky-800/60 font-semibold flex items-center gap-1.5">
+                            <i class="fa-solid fa-shield-halved"></i> Duplo Rascunho Ativo (Nunca Publica)
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Formulário de Apontamento da Turma -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Selecionar Turma Mapeada:</label>
+                        <select id="ativ-sel-turma" onchange="selecionarTurmaAtividade(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+                            <option value="">-- Escolha uma turma mapeada --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Código OU da Turma:</label>
+                        <input id="ativ-inp-ou" type="text" placeholder="Ex: 153319" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Nome da Disciplina / Atividade:</label>
+                        <input id="ativ-inp-nome" type="text" placeholder="Ex: ENGENHARIA DE SOFTWARE..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Modo de Avaliação:</label>
+                        <select id="ativ-sel-modo" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+                            <option value="tradicional">1. Execução Normal (Novos Envios)</option>
+                            <option value="recorrigir">2. Recorrigir + Auditoria 100% da Turma</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação do Fluxo -->
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <div class="flex items-center gap-3">
+                        <button id="btn-ativ-inspecionar" onclick="inspecionarAtividades()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow">
+                            <i class="fa-solid fa-microscope text-sky-400"></i> 1. Inspecionar Atividade Aberta
+                        </button>
+                        <button id="btn-ativ-iniciar" onclick="iniciarAtividades()" class="px-5 py-2 bg-gradient-to-r from-sky-600 to-brand-600 hover:from-sky-500 hover:to-brand-500 text-white rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow-lg shadow-sky-600/20">
+                            <i class="fa-solid fa-play"></i> 4. Iniciar Correção da Turma
+                        </button>
+                        <button id="btn-ativ-parar" onclick="pararExecucao()" disabled class="px-4 py-2 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 rounded-lg text-xs font-semibold transition disabled:opacity-40 flex items-center gap-1.5">
+                            <i class="fa-solid fa-hand"></i> Parar
+                        </button>
+                    </div>
+
+                    <button onclick="abrirAuditoriaAtividades()" class="px-3.5 py-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-clipboard-check text-cyan-400"></i> Ver Última Auditoria da Atividade
+                    </button>
+                </div>
+            </div>
+
+            <!-- Passo 1: Comando Oficial, Templates & Tipologia Inferida -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-sky-600/30 text-sky-400 flex items-center justify-center text-xs font-bold">1</span>
+                        Passo 1: Comando da Atividade, Templates &amp; Tipologia Inferida
+                    </h3>
+                    <div class="flex items-center gap-3 text-xs">
+                        <span class="text-slate-400">Pasta DB: <strong id="ativ-disp-db" class="font-mono text-sky-300">Não mapeado</strong></span>
+                        <span class="text-slate-400">Valor Máximo: <strong id="ativ-disp-valor" class="text-emerald-400 font-bold">1.50 pts</strong></span>
+                        <span id="ativ-disp-tipologia" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800">
+                            Tipologia: Automática
+                        </span>
+                    </div>
+                </div>
+
+                <div id="ativ-enunciado-box" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs text-slate-300 whitespace-pre-line leading-relaxed max-h-48 overflow-y-auto custom-scroll italic">
+                    Nenhuma atividade inspecionada ainda. Aponte a turma acima e clique em "1. Inspecionar Atividade Aberta".
+                </div>
+
+                <div id="ativ-templates-box" class="hidden bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-400 space-y-1">
+                    <strong class="text-slate-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-paperclip text-sky-400"></i> Modelos / Templates Fornecidos pelo Professor:
+                    </strong>
+                    <div id="ativ-disp-templates" class="text-[11px] font-mono text-sky-300"></div>
+                </div>
+            </div>
+
+            <!-- Passo 2 & Passo 3: Critérios Analíticos e Gabarito de Referência -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!-- Passo 2: Matriz Pedagógica de Critérios -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-sky-600/30 text-sky-400 flex items-center justify-center text-xs font-bold">2</span>
+                            Passo 2: Critérios de Avaliação Analíticos
+                        </h3>
+                        <span id="ativ-total-badge" class="text-[10px] bg-sky-950 text-sky-300 border border-sky-800 px-2 py-0.5 rounded-full font-semibold">
+                            Total: 1.50 pts
+                        </span>
+                    </div>
+
+                    <!-- Aviso de Feedback Qualitativo Sem Números -->
+                    <div class="p-2.5 bg-sky-950/40 border border-sky-800/40 rounded-xl text-[11px] text-sky-300 flex items-start gap-2">
+                        <i class="fa-solid fa-circle-info mt-0.5 text-sky-400"></i>
+                        <div>
+                            <strong>Política de Feedback Pedagógico:</strong> Pareceres explicam qualitativamente o desempenho e os motivos de eventuais descontos, sem exibir números ou subtrações explícitas (ex: sem <em>(-0.45 pts)</em>).
+                        </div>
+                    </div>
+
+                    <!-- Lista de Critérios Dinâmicos -->
+                    <div id="ativ-criterios-container" class="space-y-2 text-xs">
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1">
+                            <div class="flex justify-between font-semibold text-slate-200">
+                                <span>1. Aderência ao Modelo/Template e Tipologia</span>
+                                <span class="text-emerald-400">0.45 pts</span>
+                            </div>
+                            <p class="text-slate-400 text-[11px]">Observância da estrutura solicitada (cabeçalho, matriz avaliativa ou arquitetura de pastas/código).</p>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1">
+                            <div class="flex justify-between font-semibold text-slate-200">
+                                <span>2. Resolução Técnica do Comando e Evidências</span>
+                                <span class="text-emerald-400">0.75 pts</span>
+                            </div>
+                            <p class="text-slate-400 text-[11px]">Desenvolvimento consistente das questões, scripts, requisitos ou normalização requeridos pelo comando.</p>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1">
+                            <div class="flex justify-between font-semibold text-slate-200">
+                                <span>3. Rigor Conceitual, Coesão e Norma Culta</span>
+                                <span class="text-emerald-400">0.30 pts</span>
+                            </div>
+                            <p class="text-slate-400 text-[11px]">Vocabulário técnico apropriado da disciplina, fluidez argumentativa e ausência de vícios formais.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Passo 3: Padrão de Resposta Esperado -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-sky-600/30 text-sky-400 flex items-center justify-center text-xs font-bold">3</span>
+                            Passo 3: Exemplo de Resposta (Gabarito de Referência)
+                        </h3>
+                        <span class="text-[10px] bg-slate-950 text-slate-400 border border-slate-800 px-2 py-0.5 rounded-full font-semibold">
+                            Calibração Docente
+                        </span>
+                    </div>
+
+                    <div id="ativ-exemplo-box" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs text-slate-300 whitespace-pre-line leading-relaxed h-[272px] overflow-y-auto custom-scroll">
+PADRÃO DE RESPOSTA ESPERADO (GABARITO COMENTADO):
+
+1. Estruturação e Aderência:
+O estudante deve seguir as diretrizes do modelo de atividade fornecido, mantendo identificação completa e divisão clara de seções ou rotinas.
+
+2. Resolução e Domínio dos Requisitos:
+Atendimento aprofundado a todas as solicitações do comando, apresentando dados, funções ou argumentação sólida embasada no material da disciplina.
+
+3. Rigor Técnico e Autoria:
+Desenvolvimento original, com emprego preciso dos conceitos técnicos e conformidade com a norma culta ou boas práticas de engenharia.
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Passo 4: A Parte de Avaliar (Métricas & Console) -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-sky-600/30 text-sky-400 flex items-center justify-center text-xs font-bold">4</span>
+                        Passo 4: Avaliação da Turma em Tempo Real
+                    </h3>
+                    <span id="ativ-status-badge" class="px-2.5 py-1 text-xs rounded-full bg-slate-950 text-slate-400 border border-slate-800 font-semibold">
+                        Aguardando início
+                    </span>
+                </div>
+
+                <!-- Barra de Progresso e Aluno Atual -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-xs font-semibold">
+                        <span id="ativ-txt-stage" class="text-slate-300">Pronto para iniciar correções de atividades abertas.</span>
+                        <span id="ativ-txt-aluno" class="text-sky-400 font-bold"></span>
+                    </div>
+                    <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800">
+                        <div id="ativ-bar-progresso" class="bg-gradient-to-r from-sky-500 to-brand-500 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Mini Métricas -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-[11px] text-slate-400">Progresso</span>
+                        <div id="ativ-met-prog" class="text-xl font-bold text-sky-400 mt-0.5">0%</div>
+                    </div>
+                    <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-[11px] text-slate-400">Avaliados</span>
+                        <div id="ativ-met-aval" class="text-xl font-bold text-emerald-400 mt-0.5">0</div>
+                    </div>
+                    <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-[11px] text-slate-400">Multi-Arquivos</span>
+                        <div id="ativ-met-multi" class="text-xl font-bold text-indigo-400 mt-0.5">100% Agregados</div>
+                    </div>
+                    <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-[11px] text-slate-400">Salvamentos</span>
+                        <div class="text-xs font-semibold text-cyan-400 mt-1">2x Rascunho / Aluno</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Auditoria de Atividades Abertas -->
+            <div id="modal-auditoria-atividades" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-clipboard-check text-sky-400"></i> Auditoria de Atividades Abertas da Turma: <span id="audit-ativ-nome" class="text-brand-300"></span>
+                            </h3>
+                            <p class="text-xs text-slate-400" id="audit-ativ-info"></p>
+                        </div>
+                        <button onclick="fecharModalAuditoriaAtividades()" class="text-slate-400 hover:text-white text-lg">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Métricas da Auditoria -->
+                    <div class="p-4 bg-slate-950 border-b border-slate-800 grid grid-cols-3 gap-3 text-center text-xs">
+                        <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">TOTAL AVALIADOS</div>
+                            <div id="audit-ativ-tot" class="text-lg font-bold text-white">0</div>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">VALOR OFICIAL</div>
+                            <div id="audit-ativ-val" class="text-lg font-bold text-emerald-400">1.50 pts</div>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">TIPOLOGIA DETECTADA</div>
+                            <div id="audit-ativ-tipo" class="text-sm font-bold text-sky-400">GENERICA</div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Alunos Auditados -->
+                    <div class="flex-1 overflow-y-auto custom-scroll p-4 space-y-2 text-xs" id="audit-ativ-lista">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ======================================================== -->
         <!-- ABA 3: EXPLORADOR HISTÓRICO DE RELATÓRIOS (ITEM 11) -->
         <!-- ======================================================== -->
         <div id="view-relatorios" class="hidden space-y-6 max-w-7xl mx-auto">
-            
+
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
@@ -632,9 +924,11 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
         function trocarAba(aba) {
             const btnOp = document.getElementById('tab-btn-operacoes');
             const btnDisc = document.getElementById('tab-btn-discursivas');
+            const btnAtiv = document.getElementById('tab-btn-atividades');
             const btnRel = document.getElementById('tab-btn-relatorios');
             const viewOp = document.getElementById('view-operacoes');
             const viewDisc = document.getElementById('view-discursivas');
+            const viewAtiv = document.getElementById('view-atividades');
             const viewRel = document.getElementById('view-relatorios');
 
             const activeClass = "px-4 py-2 text-sm font-medium rounded-lg transition-all bg-brand-600 text-white shadow-sm flex items-center gap-2";
@@ -642,9 +936,11 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
 
             btnOp.className = inactiveClass;
             btnDisc.className = inactiveClass;
+            if (btnAtiv) btnAtiv.className = inactiveClass;
             btnRel.className = inactiveClass;
             viewOp.classList.add('hidden');
             viewDisc.classList.add('hidden');
+            if (viewAtiv) viewAtiv.classList.add('hidden');
             viewRel.classList.add('hidden');
 
             if (aba === 'operacoes') {
@@ -654,6 +950,10 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
                 btnDisc.className = activeClass;
                 viewDisc.classList.remove('hidden');
                 atualizarSeletorTurmasDiscursiva();
+            } else if (aba === 'atividades') {
+                if (btnAtiv) btnAtiv.className = activeClass;
+                if (viewAtiv) viewAtiv.classList.remove('hidden');
+                atualizarSeletorTurmasAtividade();
             } else if (aba === 'relatorios') {
                 btnRel.className = activeClass;
                 viewRel.classList.remove('hidden');
@@ -666,7 +966,7 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
             if (!sel) return;
             const currentVal = sel.value;
             sel.innerHTML = '<option value="">-- Escolha uma turma mapeada --</option>';
-            
+
             const todasTurmas = [];
             Object.values(catalogoTurmas).forEach(lista => {
                 lista.forEach(c => {
@@ -676,11 +976,18 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
                 });
             });
 
+            if (todasTurmas.length === 0) {
+                todasTurmas.push({ ou: "153319", name: "ENGENHARIA DE SOFTWARE - GPE17M20130" });
+                todasTurmas.push({ ou: "155399", name: "SISTEMAS DE INFORMAÇÕES GERENCIAIS" });
+                todasTurmas.push({ ou: "155388", name: "GOVERNANÇA DE TECNOLOGIA DA INFORMAÇÃO" });
+            }
+
             todasTurmas.forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = c.ou;
-                opt.textContent = `[${c.ou}] ${c.name}`;
-                opt.dataset.name = c.name;
+                const nomeDisc = c.name || c.nome || c.disciplina || `Turma ${c.ou}`;
+                opt.textContent = `${nomeDisc} — [OU: ${c.ou}]`;
+                opt.dataset.name = nomeDisc;
                 sel.appendChild(opt);
             });
 
@@ -688,7 +995,7 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
                 const prim = turmasSelecionadas[0];
                 sel.value = prim.ou;
                 document.getElementById('disc-inp-ou').value = prim.ou;
-                document.getElementById('disc-inp-nome').value = prim.name;
+                document.getElementById('disc-inp-nome').value = prim.name || prim.nome || '';
             } else if (currentVal) {
                 sel.value = currentVal;
             }
@@ -698,7 +1005,7 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
             if (!ou) return;
             const sel = document.getElementById('disc-sel-turma');
             const opt = sel.options[sel.selectedIndex];
-            const nome = opt ? (opt.dataset.name || opt.textContent.replace(/^\[\d+\]\s*/, '')) : '';
+            const nome = opt ? (opt.dataset.name || opt.textContent.replace(/\s*—\s*\[OU:\s*\d+\]$/, '').trim()) : '';
             document.getElementById('disc-inp-ou').value = ou;
             document.getElementById('disc-inp-nome').value = nome;
         }
@@ -731,7 +1038,7 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
                 const res = await fetch('/api/discursivas/inspecionar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, ou, nome, headless })
+                    body: JSON.stringify({ username, password, ou, nome, headless, tipo_prova: (document.getElementById('disc-sel-tipo-prova') ? document.getElementById('disc-sel-tipo-prova').value : 'presencial') })
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || "Erro na inspeção.");
@@ -813,7 +1120,8 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
                         nome,
                         modo,
                         docente: "Prof. Avaliador",
-                        headless
+                        headless,
+                        tipo_prova: (document.getElementById('disc-sel-tipo-prova') ? document.getElementById('disc-sel-tipo-prova').value : 'presencial')
                     })
                 });
                 const data = await res.json();
@@ -877,6 +1185,259 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
             document.getElementById('modal-auditoria-discursivas').classList.add('hidden');
         }
 
+        // ==========================================
+        // FLUXO DO NOVO MOTOR DE ATIVIDADES ABERTAS
+        // ==========================================
+        function atualizarSeletorTurmasAtividade() {
+            const sel = document.getElementById('ativ-sel-turma');
+            if (!sel) return;
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">-- Escolha uma turma mapeada --</option>';
+
+            const todasTurmas = [];
+            Object.values(catalogoTurmas).forEach(lista => {
+                lista.forEach(c => {
+                    if (!todasTurmas.some(t => t.ou === c.ou)) {
+                        todasTurmas.push(c);
+                    }
+                });
+            });
+
+            if (todasTurmas.length === 0) {
+                todasTurmas.push({ ou: "153319", name: "ENGENHARIA DE SOFTWARE - GPE17M20130" });
+                todasTurmas.push({ ou: "155399", name: "SISTEMAS DE INFORMAÇÕES GERENCIAIS" });
+                todasTurmas.push({ ou: "155388", name: "GOVERNANÇA DE TECNOLOGIA DA INFORMAÇÃO" });
+            }
+
+            todasTurmas.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.ou;
+                const nomeDisc = c.name || c.nome || c.disciplina || `Turma ${c.ou}`;
+                opt.textContent = `${nomeDisc} — [OU: ${c.ou}]`;
+                opt.dataset.name = nomeDisc;
+                sel.appendChild(opt);
+            });
+
+            if (turmasSelecionadas.length > 0) {
+                const prim = turmasSelecionadas[0];
+                sel.value = prim.ou;
+                document.getElementById('ativ-inp-ou').value = prim.ou;
+                document.getElementById('ativ-inp-nome').value = prim.name || prim.nome || '';
+            } else if (currentVal) {
+                sel.value = currentVal;
+            } else if (todasTurmas.length > 0) {
+                const prim = todasTurmas[0];
+                sel.value = prim.ou;
+                document.getElementById('ativ-inp-ou').value = prim.ou;
+                document.getElementById('ativ-inp-nome').value = prim.name || prim.nome || '';
+            }
+        }
+
+        function selecionarTurmaAtividade(ou) {
+            if (!ou) return;
+            const sel = document.getElementById('ativ-sel-turma');
+            const opt = sel ? sel.options[sel.selectedIndex] : null;
+            let nome = opt ? (opt.dataset.name || opt.textContent.replace(/\s*—\s*\[OU:\s*\d+\]$/, '').trim()) : '';
+            if (!nome || nome === 'undefined') {
+                const t = todasTurmas.find(x => String(x.ou) === String(ou));
+                if (t) nome = t.name || t.nome || t.disciplina || '';
+            }
+            document.getElementById('ativ-inp-ou').value = ou;
+            document.getElementById('ativ-inp-nome').value = (nome && nome !== 'undefined') ? nome : '';
+        }
+
+        async function inspecionarAtividades() {
+            const username = document.getElementById('inp-username').value.trim();
+            const password = document.getElementById('inp-password').value.trim();
+            const ou = document.getElementById('ativ-inp-ou').value.trim();
+            const rawNome = document.getElementById('ativ-inp-nome').value.trim();
+            const nome = (rawNome && rawNome !== 'undefined') ? rawNome : '';
+            const headless = document.getElementById('chk-headless').checked;
+
+            if (!username || !password) {
+                alert("Por favor, preencha sua Matrícula e Senha no Painel de Operações primeiro.");
+                trocarAba('operacoes');
+                document.getElementById('inp-username').focus();
+                return;
+            }
+
+            if (!ou) {
+                alert("Por favor, selecione ou informe o código OU da turma.");
+                document.getElementById('ativ-inp-ou').focus();
+                return;
+            }
+
+            const btn = document.getElementById('btn-ativ-inspecionar');
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Inspecionando Atividade...`;
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/atividades/inspecionar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, ou, nome, headless, tipo_prova: (document.getElementById('disc-sel-tipo-prova') ? document.getElementById('disc-sel-tipo-prova').value : 'presencial') })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Erro na inspeção.");
+
+                const info = data.info || {};
+                const rubrica = data.rubrica || {};
+                const criterios = rubrica.criterios || [];
+                const gabarito = rubrica.gabarito_referencia || "";
+
+                if (info.disciplina && info.disciplina !== 'undefined' && !document.getElementById('ativ-inp-nome').value) {
+                    document.getElementById('ativ-inp-nome').value = info.disciplina;
+                }
+
+                // 1. Atualizar Passo 1
+                document.getElementById('ativ-disp-db').textContent = info.db || "Atividade Aberta";
+                document.getElementById('ativ-disp-valor').textContent = (info.valor_maximo ? info.valor_maximo.toFixed(2) : "1.50") + " pts";
+                document.getElementById('ativ-disp-tipologia').textContent = `Tipologia: ${(info.tipologia || 'GENERICA').replace('_', ' ')}`;
+                document.getElementById('ativ-enunciado-box').textContent = info.enunciado || "Enunciado não localizado.";
+
+                if (info.templates_fornecidos && info.templates_fornecidos.length > 0) {
+                    document.getElementById('ativ-templates-box').classList.remove('hidden');
+                    document.getElementById('ativ-disp-templates').textContent = info.templates_fornecidos.join(', ');
+                } else {
+                    document.getElementById('ativ-templates-box').classList.add('hidden');
+                }
+
+                // 2. Atualizar Passo 2 (Critérios da Matriz / Rubrica)
+                const critContainer = document.getElementById('ativ-criterios-container');
+                if (criterios.length > 0) {
+                    critContainer.innerHTML = criterios.map(c => `
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1">
+                            <div class="flex justify-between font-semibold text-slate-200">
+                                <span>${c.nome}</span>
+                                <span class="text-emerald-400">${c.peso.toFixed(2)} pts</span>
+                            </div>
+                            <p class="text-slate-400 text-[11px]">${c.descricao}</p>
+                        </div>
+                    `).join('');
+                }
+
+                // 3. Atualizar Passo 3 (Exemplo / Gabarito de Referência)
+                if (gabarito) {
+                    document.getElementById('ativ-exemplo-box').textContent = gabarito;
+                }
+
+            } catch (err) {
+                alert("Falha na inspeção da atividade aberta: " + err.message);
+            } finally {
+                btn.innerHTML = `<i class="fa-solid fa-microscope text-sky-400"></i> 1. Inspecionar Atividade Aberta`;
+                btn.disabled = false;
+            }
+        }
+
+        async function iniciarAtividades() {
+            const username = document.getElementById('inp-username').value.trim();
+            const password = document.getElementById('inp-password').value.trim();
+            const ou = document.getElementById('ativ-inp-ou').value.trim();
+            const rawNome = document.getElementById('ativ-inp-nome').value.trim();
+            const nome = (rawNome && rawNome !== 'undefined') ? rawNome : '';
+            const modo = document.getElementById('ativ-sel-modo').value;
+            const headless = document.getElementById('chk-headless').checked;
+
+            if (!username || !password) {
+                alert("Por favor, preencha sua Matrícula e Senha no Painel de Operações primeiro.");
+                trocarAba('operacoes');
+                document.getElementById('inp-username').focus();
+                return;
+            }
+
+            if (!ou) {
+                alert("Por favor, selecione ou informe o código OU da turma.");
+                document.getElementById('ativ-inp-ou').focus();
+                return;
+            }
+
+            const btn = document.getElementById('btn-ativ-iniciar');
+            const btnParar = document.getElementById('btn-ativ-parar');
+            btn.disabled = true;
+            btnParar.disabled = false;
+
+            document.getElementById('ativ-status-badge').className = "px-2.5 py-1 text-xs rounded-full bg-sky-950 text-sky-400 border border-sky-800 font-semibold animate-pulse";
+            document.getElementById('ativ-status-badge').textContent = "Corrigindo Turma...";
+
+            try {
+                const res = await fetch('/api/atividades/iniciar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username,
+                        password,
+                        ou,
+                        nome,
+                        modo,
+                        headless
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Erro ao iniciar.");
+            } catch (err) {
+                alert("Falha ao iniciar avaliação da atividade aberta: " + err.message);
+                btn.disabled = false;
+                btnParar.disabled = true;
+            }
+        }
+
+        async function abrirAuditoriaAtividades() {
+            const ou = document.getElementById('ativ-inp-ou').value.trim();
+            if (!ou) {
+                alert("Informe ou selecione o código OU da turma.");
+                return;
+            }
+            try {
+                const res = await fetch(`/api/atividades/auditoria/${ou}`);
+                if (!res.ok) {
+                    alert("Nenhum relatório de auditoria de atividades abertas encontrado para esta turma ainda. Conclua uma avaliação primeiro.");
+                    return;
+                }
+                const data = await res.json();
+                document.getElementById('audit-ativ-nome').textContent = data.disciplina || ou;
+                document.getElementById('audit-ativ-info').textContent = `OU: ${data.ou} | Atividade: ${data.atividade} | Total Avaliados: ${data.total_avaliados}`;
+                document.getElementById('audit-ativ-tot').textContent = data.total_avaliados;
+                document.getElementById('audit-ativ-val').textContent = (data.valor_oficial ? data.valor_oficial.toFixed(2) : "1.50") + " pts";
+                document.getElementById('audit-ativ-tipo').textContent = (data.tipologia || "GENERICA").replace('_', ' ');
+
+                const lista = document.getElementById('audit-ativ-lista');
+                const alunos = data.estudantes || [];
+                if (alunos.length === 0) {
+                    lista.innerHTML = `<p class="text-slate-500 text-center py-4">Nenhum estudante registrado.</p>`;
+                } else {
+                    lista.innerHTML = alunos.map(al => `
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-slate-200">${al.aluno}</span>
+                                <span class="text-xs font-bold text-emerald-400">${al.nota.toFixed(2)} / ${al.nota_max.toFixed(2)} pts (${al.qualidade})</span>
+                            </div>
+                            <div class="text-[11px] text-slate-400 flex flex-wrap gap-3 font-mono">
+                                <span>C1: ${al.nota_c1.toFixed(2)}</span>
+                                <span>C2: ${al.nota_c2.toFixed(2)}</span>
+                                <span>C3: ${al.nota_c3.toFixed(2)}</span>
+                                <span>Arquivos: ${al.total_arquivos} (${(al.arquivos || []).join(', ')})</span>
+                            </div>
+                            ${(al.descontos && al.descontos.length > 0) ? `
+                                <div class="text-[11px] text-slate-400 border-t border-slate-800/80 pt-1">
+                                    <strong class="text-slate-300">Justificativas Qualitativas de Desconto:</strong>
+                                    <ul class="list-disc pl-4 space-y-0.5 mt-0.5">
+                                        ${al.descontos.map(d => `<li>${d}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : `<div class="text-[10px] text-emerald-500">Pontuação integral atingida sem descontos.</div>`}
+                        </div>
+                    `).join('');
+                }
+                document.getElementById('modal-auditoria-atividades').classList.remove('hidden');
+            } catch (err) {
+                alert("Erro ao buscar auditoria de atividades: " + err.message);
+            }
+        }
+
+        function fecharModalAuditoriaAtividades() {
+            document.getElementById('modal-auditoria-atividades').classList.add('hidden');
+        }
+
         async function carregarCursos() {
             const btn = document.getElementById('btn-descobrir');
             btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Mapeando...`;
@@ -894,7 +1455,7 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
                 });
                 const data = await res.json();
                 catalogoTurmas = data.disciplinas_por_aba || {};
-                
+
                 // Popular seletor de abas
                 const selAba = document.getElementById('sel-aba-turmas');
                 selAba.innerHTML = '';
@@ -908,6 +1469,7 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
 
                 atualizarListaTurmas();
                 atualizarSeletorTurmasDiscursiva();
+                atualizarSeletorTurmasAtividade();
             } catch (err) {
                 alert("Falha ao mapear turmas: " + err);
             } finally {
@@ -998,12 +1560,12 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
                     })
                 });
                 const plano = await res.json();
-                
+
                 // Exibir painel de apoio
                 document.getElementById('painel-apoio').classList.remove('hidden');
                 document.getElementById('apoio-nome-disc').textContent = plano.disciplina;
                 document.getElementById('apoio-regra-badge').textContent = plano.regra_curricular === '2_UNIDADES' ? '2 Unidades (Fórum 2,5)' : '4 Unidades (Fórum 1,0 + Ativ 1,5)';
-                
+
                 document.getElementById('apoio-forum-pts').textContent = plano.forum.valor + ' pts';
                 document.getElementById('apoio-forum-pend').textContent = plano.forum.total_pendentes;
                 document.getElementById('apoio-forum-tot').textContent = plano.forum.total_geral;
@@ -1015,6 +1577,14 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
                 document.getElementById('apoio-ativ-inst').textContent = plano.atividade_aberta.instrucoes || 'Sem instruções extraídas.';
 
                 document.getElementById('apoio-prova-enun').textContent = plano.prova_presencial.enunciado_discursiva || 'Discursiva mapeada.';
+                if (plano.prova_substitutiva) {
+                    if (document.getElementById('apoio-sub-enun')) {
+                        document.getElementById('apoio-sub-enun').textContent = plano.prova_substitutiva.enunciado_discursiva || (plano.prova_substitutiva.ativa ? 'Discursiva Substitutiva mapeada.' : 'Não identificada');
+                    }
+                    if (document.getElementById('apoio-sub-pts')) {
+                        document.getElementById('apoio-sub-pts').textContent = plano.prova_substitutiva.ativa ? (plano.prova_substitutiva.valor + ' pts') : 'Desativada';
+                    }
+                }
             } catch (err) {
                 alert("Erro ao inspecionar: " + err);
             } finally {
@@ -1030,9 +1600,10 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
             }
 
             const ativs = [];
-            if (document.getElementById('chk-ativ-forum').checked) ativs.push('forum');
-            if (document.getElementById('chk-ativ-aberta').checked) ativs.push('atividade_aberta');
-            if (document.getElementById('chk-ativ-prova').checked) ativs.push('prova_presencial');
+            if (document.getElementById('chk-ativ-forum') && document.getElementById('chk-ativ-forum').checked) ativs.push('forum');
+            if (document.getElementById('chk-ativ-aberta') && document.getElementById('chk-ativ-aberta').checked) ativs.push('atividade_aberta');
+            if (document.getElementById('chk-ativ-prova') && document.getElementById('chk-ativ-prova').checked) ativs.push('prova_presencial');
+            if (document.getElementById('chk-ativ-substitutiva') && document.getElementById('chk-ativ-substitutiva').checked) ativs.push('prova_substitutiva');
 
             if (ativs.length === 0) {
                 alert("Selecione pelo menos um tipo de atividade.");
@@ -1074,7 +1645,7 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
             try {
                 const res = await fetch('/api/status');
                 const st = await res.json();
-                
+
                 // Atualizar badges
                 const dot = document.getElementById('motor-dot');
                 const statusTxt = document.getElementById('motor-status-txt');
@@ -1091,6 +1662,15 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
                 const discStage = document.getElementById('disc-txt-stage');
                 const discAluno = document.getElementById('disc-txt-aluno');
 
+                const btnAtivIniciar = document.getElementById('btn-ativ-iniciar');
+                const btnAtivParar = document.getElementById('btn-ativ-parar');
+                const ativBadge = document.getElementById('ativ-status-badge');
+                const ativBar = document.getElementById('ativ-bar-progresso');
+                const ativProg = document.getElementById('ativ-met-prog');
+                const ativAval = document.getElementById('ativ-met-aval');
+                const ativStage = document.getElementById('ativ-txt-stage');
+                const ativAluno = document.getElementById('ativ-txt-aluno');
+
                 if (st.is_running) {
                     dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-ping";
                     statusTxt.textContent = "Executando...";
@@ -1103,6 +1683,13 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
                         discBadge.className = "px-2.5 py-1 text-xs rounded-full bg-amber-950 text-amber-400 border border-amber-800 font-semibold animate-pulse";
                         discBadge.textContent = "Avaliando Turma...";
                     }
+
+                    if (btnAtivIniciar) btnAtivIniciar.disabled = true;
+                    if (btnAtivParar) btnAtivParar.disabled = false;
+                    if (ativBadge) {
+                        ativBadge.className = "px-2.5 py-1 text-xs rounded-full bg-sky-950 text-sky-400 border border-sky-800 font-semibold animate-pulse";
+                        ativBadge.textContent = "Avaliando Turma...";
+                    }
                 } else {
                     dot.className = "w-2 h-2 rounded-full bg-emerald-500";
                     statusTxt.textContent = "Sistema Pronto";
@@ -1114,6 +1701,13 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
                     if (discBadge) {
                         discBadge.className = "px-2.5 py-1 text-xs rounded-full bg-slate-950 text-slate-400 border border-slate-800 font-semibold";
                         discBadge.textContent = "Sistema Pronto";
+                    }
+
+                    if (btnAtivIniciar) btnAtivIniciar.disabled = false;
+                    if (btnAtivParar) btnAtivParar.disabled = true;
+                    if (ativBadge) {
+                        ativBadge.className = "px-2.5 py-1 text-xs rounded-full bg-slate-950 text-slate-400 border border-slate-800 font-semibold";
+                        ativBadge.textContent = "Sistema Pronto";
                     }
                 }
 
@@ -1135,6 +1729,13 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
                 if (discPlag) discPlag.textContent = st.statistics?.plagios_detectados || 0;
                 if (discStage) discStage.textContent = st.current_stage || "Pronto para iniciar correções discursivas.";
                 if (discAluno) discAluno.textContent = st.current_student ? `Estudante: ${st.current_student}` : "";
+
+                // Métricas Aba Atividades Abertas
+                if (ativBar) ativBar.style.width = `${st.progress_percent}%`;
+                if (ativProg) ativProg.textContent = `${st.progress_percent}%`;
+                if (ativAval) ativAval.textContent = st.statistics?.avaliados || 0;
+                if (ativStage) ativStage.textContent = st.current_stage || "Pronto para iniciar correções de atividades abertas.";
+                if (ativAluno) ativAluno.textContent = st.current_student ? `Estudante: ${st.current_student}` : "";
 
                 // Logs
                 if (st.logs && st.logs.length > 0) {
@@ -1194,7 +1795,7 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
 
                 document.getElementById('modal-sessao-id').textContent = id;
                 document.getElementById('modal-sessao-info').textContent = `Data: ${data.data_execucao} | Modo: ${data.modo.toUpperCase()} | Docente: ${data.docente}`;
-                
+
                 renderizarItensModal(data.itens || []);
                 document.getElementById('modal-detalhes-relatorio').classList.remove('hidden');
             } catch (err) {
@@ -1235,7 +1836,7 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
         function filtrarItensModal() {
             if (!relatorioAtualCache || !relatorioAtualCache.itens) return;
             const termo = document.getElementById('modal-filtro-busca').value.toLowerCase();
-            const filtrados = relatorioAtualCache.itens.filter(it => 
+            const filtrados = relatorioAtualCache.itens.filter(it =>
                 it.aluno.toLowerCase().includes(termo) ||
                 it.disciplina.toLowerCase().includes(termo) ||
                 it.atividade.toLowerCase().includes(termo)
@@ -1249,4 +1850,3 @@ O texto deve ser redigido com as próprias palavras do estudante, articulando ra
     </script>
 </body>
 </html>
-

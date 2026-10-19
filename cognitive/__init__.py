@@ -10,4 +10,3 @@ __all__ = [
     "analisador_pedagogico",
     "construtor_feedback"
 ]
-
